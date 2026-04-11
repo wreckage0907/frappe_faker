@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-11 15:51:00.752387",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ai_settings_section",
+  "ai_provider",
+  "api_key",
+  "api_endpoint",
+  "model_name",
+  "data_settings_section",
+  "default_count"
+ ],
+ "fields": [
+  {
+   "fieldname": "ai_settings_section",
+   "fieldtype": "Section Break",
+   "label": "AI Settings"
+  },
+  {
+   "fieldname": "ai_provider",
+   "fieldtype": "Select",
+   "label": "AI Provider",
+   "options": "\nOpenAI\nAnthropic\nOllama\nCustom"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "api_endpoint",
+   "fieldtype": "Data",
+   "label": "API Endpoint"
+  },
+  {
+   "fieldname": "model_name",
+   "fieldtype": "Data",
+   "label": "Model Name"
+  },
+  {
+   "fieldname": "data_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Data Settings"
+  },
+  {
+   "default": "10\n",
+   "fieldname": "default_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Default Count",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-04-11 15:53:41.447285",
+ "modified_by": "Administrator",
+ "module": "Frappe Faker",
+ "name": "Faker Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

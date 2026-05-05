@@ -153,17 +153,23 @@ def get_generation_context(doctype: str) -> dict[str, Any]:
 	"""
 	schema = analyze_doctype(doctype)
 
-	# For each link dependency, fetch existing records
-	existing_links: dict[str, list[str]] = {}
-	for dep in schema["link_dependencies"]:
-		records = get_existing_records(dep)
-		existing_links[dep] = records
+	# Collect ALL linked doctypes referenced by fields (including blocklisted ones).
+	# Blocklisted doctypes won't be *generated*, but we still need their existing
+	# record names so the LLM can reference them (e.g., Company, User, Currency).
+	all_link_doctypes: set[str] = set(schema["link_dependencies"])
 
-	# Also check child table link deps
+	# Also gather link targets directly from fields (includes blocklisted ones)
+	for field in schema["fields"]:
+		if field.get("link_doctype"):
+			all_link_doctypes.add(field["link_doctype"])
 	for _fieldname, child_info in schema["child_tables"].items():
-		for dep in child_info["link_dependencies"]:
-			if dep not in existing_links:
-				existing_links[dep] = get_existing_records(dep)
+		for field in child_info["fields"]:
+			if field.get("link_doctype"):
+				all_link_doctypes.add(field["link_doctype"])
+
+	existing_links: dict[str, list[str]] = {}
+	for dep in all_link_doctypes:
+		existing_links[dep] = get_existing_records(dep)
 
 	return {
 		"schema": schema,

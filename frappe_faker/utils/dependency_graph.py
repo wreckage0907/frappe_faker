@@ -20,16 +20,14 @@ def resolve_dependencies(
 	doctype: str,
 	skip: set[str] | None = None,
 	max_depth: int = 5,
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
 	"""
 	Resolve the full dependency tree for a doctype.
 
-	Returns a list of dicts in generation order (dependencies first):
-	[
-		{"doctype": "Activity Type", "depth": 2, "has_existing_data": True},
-		{"doctype": "Project", "depth": 1, "has_existing_data": False},
-		{"doctype": "Timesheet", "depth": 0, "has_existing_data": False},
-	]
+	Returns a dict with:
+	- order: list of dicts in generation order (dependencies first)
+	- truncated: list of doctypes that were cut off by max_depth
+	- cycles: list of doctypes involved in circular dependencies
 
 	Args:
 		doctype: The target doctype to generate data for
@@ -39,11 +37,12 @@ def resolve_dependencies(
 	skip = skip or set()
 	graph: dict[str, set[str]] = {}  # doctype -> set of dependencies
 	visited: set[str] = set()
+	truncated: list[str] = []
 
-	_build_graph(doctype, graph, visited, skip, max_depth, current_depth=0)
+	_build_graph(doctype, graph, visited, skip, max_depth, current_depth=0, truncated=truncated, is_root=True)
 
 	# Topological sort
-	order = _topological_sort(graph)
+	order, cycles = _topological_sort(graph)
 
 	# Enrich with metadata
 	result = []
@@ -55,10 +54,15 @@ def resolve_dependencies(
 				"doctype": dt,
 				"depth": depth,
 				"has_existing_data": has_data,
+				"is_cyclic": dt in cycles,
 			}
 		)
 
-	return result
+	return {
+		"order": result,
+		"truncated": truncated,
+		"cycles": cycles,
+	}
 
 
 def _build_graph(
@@ -68,11 +72,19 @@ def _build_graph(
 	skip: set[str],
 	max_depth: int,
 	current_depth: int,
+	truncated: list[str],
+	is_root: bool = False,
 ) -> None:
 	"""Recursively build the dependency graph."""
-	if doctype in visited or doctype in SYSTEM_DOCTYPE_BLOCKLIST or doctype in skip:
+	if doctype in visited:
+		return
+	# Only apply blocklist to non-root doctypes. The root is explicitly requested by the user.
+	if not is_root and doctype in SYSTEM_DOCTYPE_BLOCKLIST:
+		return
+	if doctype in skip:
 		return
 	if current_depth > max_depth:
+		truncated.append(doctype)
 		return
 
 	visited.add(doctype)
@@ -86,43 +98,30 @@ def _build_graph(
 			continue
 		deps.add(dep)
 		# Recurse into dependency
-		_build_graph(dep, graph, visited, skip, max_depth, current_depth + 1)
+		_build_graph(dep, graph, visited, skip, max_depth, current_depth + 1, truncated)
 
 	graph[doctype] = deps
 
 
-def _topological_sort(graph: dict[str, set[str]]) -> list[str]:
+def _topological_sort(graph: dict[str, set[str]]) -> tuple[list[str], list[str]]:
 	"""
 	Kahn's algorithm for topological sort.
-	Returns doctypes in order: dependencies first, target last.
-	Handles cycles by breaking them (nodes still in graph after sort are cyclic).
+	Returns (ordered_list, cyclic_nodes).
+	ordered_list: doctypes in generation order (dependencies first).
+	cyclic_nodes: doctypes involved in cycles (appended at end in arbitrary order).
 	"""
-	# Compute in-degrees (only for nodes in our graph)
+	# in_degree[node] = number of its dependencies that are also in the graph
 	in_degree: dict[str, int] = {node: 0 for node in graph}
-	for _node, deps in graph.items():
-		for dep in deps:
-			if dep in in_degree:
-				in_degree[dep] = in_degree.get(dep, 0)  # ensure exists
-				# dep is depended upon by node, so dep must come first
-				# Actually: node depends on dep, so dep has no extra in-degree from this
-				pass
-
-	# Reverse: who depends on whom
-	# If A depends on B, B must come before A. So edge is B -> A in generation order.
-	# in_degree[A] = number of deps A has that are in the graph
-	in_degree = {node: 0 for node in graph}
 	for node, deps in graph.items():
 		for dep in deps:
 			if dep in graph:
-				in_degree[node] += 1  # node can't be generated until dep is done
+				in_degree[node] += 1
 
-	# Start with nodes that have no dependencies within the graph
-	queue = [node for node, deg in in_degree.items() if deg == 0]
+	# Start with nodes that have no unresolved dependencies
+	queue = sorted(node for node, deg in in_degree.items() if deg == 0)
 	result: list[str] = []
 
 	while queue:
-		# Sort for deterministic output
-		queue.sort()
 		node = queue.pop(0)
 		result.append(node)
 
@@ -132,13 +131,13 @@ def _topological_sort(graph: dict[str, set[str]]) -> list[str]:
 				in_degree[other] -= 1
 				if in_degree[other] == 0:
 					queue.append(other)
+		queue.sort()
 
-	# Any remaining nodes are in cycles — append them anyway
-	for node in graph:
-		if node not in result:
-			result.append(node)
+	# Any remaining nodes are in cycles
+	cycles = [node for node in graph if node not in result]
+	result.extend(sorted(cycles))
 
-	return result
+	return result, cycles
 
 
 def _get_depth(doctype: str, graph: dict[str, set[str]], target: str) -> int:
@@ -172,13 +171,19 @@ def _has_existing_data(doctype: str) -> bool:
 
 def print_dependency_tree(doctype: str, skip: set[str] | None = None) -> str:
 	"""Return a human-readable dependency tree string."""
-	order = resolve_dependencies(doctype, skip=skip)
+	result = resolve_dependencies(doctype, skip=skip)
+	order = result["order"]
 	lines = []
 	lines.append(f"Generation order for: {doctype}")
 	lines.append("=" * 50)
 	for i, item in enumerate(order, 1):
-		status = "✓ has data" if item["has_existing_data"] else "○ needs generation"
+		status = "has data" if item["has_existing_data"] else "needs generation"
+		marker = "~" if item.get("is_cyclic") else ""
 		indent = "  " * item["depth"] if item["depth"] >= 0 else ""
-		lines.append(f"  {i}. {indent}{item['doctype']} [{status}]")
+		lines.append(f"  {i}. {indent}{marker}{item['doctype']} [{status}]")
+	if result["truncated"]:
+		lines.append(f"\n  WARNING: Truncated at depth {5}: {', '.join(result['truncated'])}")
+	if result["cycles"]:
+		lines.append(f"\n  WARNING: Circular dependencies detected: {', '.join(result['cycles'])}")
 	lines.append("=" * 50)
 	return "\n".join(lines)

@@ -52,7 +52,7 @@ def insert_records(
 			# Continue with remaining records
 			continue
 
-	# Commit successful inserts
+	# Commit after inserts so subsequent dependency generations can find these records # nosemgrep
 	if created:
 		frappe.db.commit()
 

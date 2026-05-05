@@ -12,6 +12,7 @@ from typing import Any
 
 import frappe
 import requests
+from frappe import _
 
 from frappe_faker.utils.prompt_builder import SYSTEM_PROMPT, build_generation_prompt
 
@@ -79,7 +80,7 @@ def _get_settings() -> dict[str, Any]:
 	doc = frappe.get_single("Faker Settings")
 	provider = doc.ai_provider
 	if not provider:
-		frappe.throw("Please configure AI Provider in Faker Settings")
+		frappe.throw(_("Please configure AI Provider in Faker Settings"))
 
 	return {
 		"provider": provider,
@@ -110,7 +111,7 @@ def _call_openai_compatible(settings: dict[str, Any], prompt: str) -> str:
 		elif settings["provider"] == "Ollama":
 			endpoint = "http://localhost:11434/v1/chat/completions"
 		else:
-			frappe.throw("API Endpoint is required for Custom provider")
+			frappe.throw(_("API Endpoint is required for Custom provider"))
 
 	headers = {"Content-Type": "application/json"}
 	if settings["api_key"]:
@@ -141,7 +142,7 @@ def _call_anthropic(settings: dict[str, Any], prompt: str) -> str:
 	endpoint = settings["api_endpoint"] or "https://api.anthropic.com/v1/messages"
 	api_key = settings["api_key"]
 	if not api_key:
-		frappe.throw("API Key is required for Anthropic provider")
+		frappe.throw(_("API Key is required for Anthropic provider"))
 
 	model = settings["model_name"] or "claude-sonnet-4-20250514"
 

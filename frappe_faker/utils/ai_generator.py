@@ -56,6 +56,8 @@ def generate_records(
 			# Inject doctype into each record
 			doctype = context["schema"]["doctype"]
 			for record in records:
+				if not isinstance(record, dict):
+					raise GenerationError(f"Expected record to be a dict, got {type(record).__name__}")
 				record["doctype"] = doctype
 				# Inject doctype into child table rows
 				for fieldname, child_info in context["schema"]["child_tables"].items():
@@ -133,8 +135,11 @@ def _call_openai_compatible(settings: dict[str, Any], prompt: str) -> str:
 	if response.status_code != 200:
 		raise GenerationError(f"LLM API returned {response.status_code}: {response.text[:500]}")
 
-	data = response.json()
-	return data["choices"][0]["message"]["content"]
+	try:
+		data = response.json()
+		return data["choices"][0]["message"]["content"]
+	except (ValueError, KeyError, IndexError) as e:
+		raise GenerationError(f"Unexpected OpenAI-compatible API response format: {e}")
 
 
 def _call_anthropic(settings: dict[str, Any], prompt: str) -> str:
@@ -164,8 +169,11 @@ def _call_anthropic(settings: dict[str, Any], prompt: str) -> str:
 	if response.status_code != 200:
 		raise GenerationError(f"Anthropic API returned {response.status_code}: {response.text[:500]}")
 
-	data = response.json()
-	return data["content"][0]["text"]
+	try:
+		data = response.json()
+		return data["content"][0]["text"]
+	except (ValueError, KeyError, IndexError) as e:
+		raise GenerationError(f"Unexpected Anthropic API response format: {e}")
 
 
 def _parse_response(raw: str) -> list[dict[str, Any]]:

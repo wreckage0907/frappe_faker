@@ -49,7 +49,7 @@ def build_generation_prompt(
 		parts.append(f"Naming rule: {schema['autoname']} (do NOT include a 'name' field)\n")
 
 	if schema["is_submittable"]:
-		parts.append("This is a submittable document. Set docstatus to 0 (Draft).\n")
+		parts.append("This is a submittable document. Do NOT include docstatus (it defaults to 0/Draft).\n")
 
 	# Field schema
 	parts.append("## Fields\n")

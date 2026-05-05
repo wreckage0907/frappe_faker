@@ -15,6 +15,7 @@ def insert_records(
 	records: list[dict[str, Any]],
 	ignore_permissions: bool = True,
 	ignore_mandatory: bool = False,
+	ignore_validate: bool = False,
 ) -> dict[str, Any]:
 	"""
 	Insert generated records into the database.
@@ -23,6 +24,7 @@ def insert_records(
 		records: List of record dicts (with 'doctype' key)
 		ignore_permissions: Skip permission checks (for admin seeding)
 		ignore_mandatory: Skip mandatory field validation
+		ignore_validate: Skip DocType validation hooks (use with caution)
 
 	Returns:
 		Summary dict with created, failed, and details.
@@ -32,16 +34,19 @@ def insert_records(
 
 	for i, record in enumerate(records):
 		try:
+			frappe.db.savepoint("faker_insert")
 			doc = frappe.get_doc(record)
 			doc.flags.ignore_permissions = ignore_permissions
 			doc.flags.ignore_mandatory = ignore_mandatory
 			doc.flags.ignore_links = True
-			doc.flags.ignore_validate = True
+			if ignore_validate:
+				doc.flags.ignore_validate = True
 			# Nullify link fields that reference non-existent records
 			_clear_broken_links(doc)
 			doc.insert(ignore_permissions=ignore_permissions, ignore_links=True)
 			created.append(doc.name)
 		except Exception as e:
+			frappe.db.rollback(save_point="faker_insert")
 			failed.append(
 				{
 					"index": i,
@@ -49,12 +54,11 @@ def insert_records(
 					"record": _safe_summary(record),
 				}
 			)
-			# Continue with remaining records
 			continue
 
 	# Commit after inserts so subsequent dependency generations can find these records # nosemgrep
 	if created:
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 	return {
 		"doctype": records[0]["doctype"] if records else None,

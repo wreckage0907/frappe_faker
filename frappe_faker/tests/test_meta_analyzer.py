@@ -92,11 +92,11 @@ class TestGetExistingRecords(IntegrationTestCase):
 		self.assertEqual(result2, ["SENTINEL"])
 
 	def test_limit_respected(self):
-		# Create a couple of Notes so there is at least one record
+		# Insert Notes within the current transaction — visible to get_existing_records
+		# without committing (IntegrationTestCase rolls back after each test).
 		for i in range(3):
 			note = frappe.get_doc({"doctype": "Note", "title": f"Cache Limit Test {i}"})
 			note.insert(ignore_permissions=True)
-		frappe.db.commit()  # nosemgrep
 
 		records = get_existing_records("Note", limit=2)
 		self.assertLessEqual(len(records), 2)
@@ -129,7 +129,14 @@ class TestGetGenerationContext(IntegrationTestCase):
 
 	def test_todo_context_has_link_entries(self):
 		ctx = get_generation_context("ToDo")
-		# ToDo links to User (and potentially others); existing_links should have entries
-		self.assertIsInstance(ctx["existing_links"], dict)
-		# At minimum, linked doctypes that have records should appear
-		# (We don't assert exact keys since it depends on the test environment)
+		# ToDo links to User among others; User always has records (Administrator).
+		# existing_links must contain at least one entry for linked doctypes that
+		# have data in the DB — an empty dict would mean the context is useless for
+		# generating any Link field values.
+		self.assertGreater(
+			len(ctx["existing_links"]),
+			0,
+			"expected at least one linked-doctype entry in existing_links for ToDo",
+		)
+		# User is always present (Administrator exists in every Frappe site)
+		self.assertIn("User", ctx["existing_links"])

@@ -5,8 +5,11 @@
 Integration tests for frappe_faker.utils.inserter.
 
 _sanitize_record and _batch_check_links need get_meta (DB).
-insert_records* and generate_and_insert write real rows (rolled back by the
-test framework's per-test transaction).
+insert_records* and generate_and_insert write real rows and call
+frappe.db.commit() unconditionally on success, so inserted records
+persist in the DB after each test. The Frappe IntegrationTestCase
+framework does NOT automatically roll these back; tests that insert
+data should use unique titles or otherwise tolerate pre-existing rows.
 """
 
 import json

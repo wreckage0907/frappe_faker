@@ -28,6 +28,7 @@ def generate_records(
 	count: int,
 	custom_instructions: str | None = None,
 	max_retries: int = 2,
+	settings: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
 	"""
 	Generate fake records using the configured AI provider.
@@ -37,11 +38,13 @@ def generate_records(
 		count: Number of records to generate
 		custom_instructions: Optional user instructions
 		max_retries: Number of retries on parse failure
+		settings: Pre-loaded Faker Settings dict (avoids repeated DB reads)
 
 	Returns:
 		List of record dicts ready for insertion.
 	"""
-	settings = _get_settings()
+	if settings is None:
+		settings = _get_settings()
 	prompt = build_generation_prompt(context, count, custom_instructions)
 
 	last_error = None
@@ -77,6 +80,11 @@ def generate_records(
 	raise GenerationError(f"Failed to generate valid records after {max_retries + 1} attempts: {last_error}")
 
 
+def get_settings() -> dict[str, Any]:
+	"""Load Faker Settings from the database (public alias)."""
+	return _get_settings()
+
+
 def _get_settings() -> dict[str, Any]:
 	"""Load Faker Settings from the database."""
 	doc = frappe.get_single("Faker Settings")
@@ -101,7 +109,7 @@ def _call_llm(settings: dict[str, Any], prompt: str, attempt_num: int = 0) -> st
 	elif provider == "Anthropic":
 		return _call_anthropic(settings, prompt)
 	else:
-		frappe.throw(f"Unsupported AI provider: {provider}")
+		raise GenerationError(f"Unsupported AI provider: {provider}")
 
 
 def _call_openai_compatible(settings: dict[str, Any], prompt: str) -> str:

@@ -44,15 +44,18 @@ def resolve_dependencies(
 	# Topological sort
 	order, cycles = _topological_sort(graph)
 
-	# Enrich with metadata
+	# Compute all depths in one BFS pass from the target (O(N) instead of O(N²))
+	depths = _compute_depths(graph, doctype)
+
+	# Batch check for existing data (one frappe.db.count per doctype, but avoid
+	# repeated calls for the same doctype if it appears multiple times)
 	result = []
 	for dt in order:
-		depth = _get_depth(dt, graph, doctype)
 		has_data = _has_existing_data(dt)
 		result.append(
 			{
 				"doctype": dt,
-				"depth": depth,
+				"depth": depths.get(dt, -1),
 				"has_existing_data": has_data,
 				"is_cyclic": dt in cycles,
 			}
@@ -138,6 +141,24 @@ def _topological_sort(graph: dict[str, set[str]]) -> tuple[list[str], list[str]]
 	result.extend(sorted(cycles))
 
 	return result, cycles
+
+
+def _compute_depths(graph: dict[str, set[str]], target: str) -> dict[str, int]:
+	"""
+	Compute depths for all nodes relative to the target in one BFS pass (O(N)).
+	target has depth 0, its direct deps have depth 1, etc.
+	"""
+	from collections import deque
+
+	depths: dict[str, int] = {target: 0}
+	queue = deque([target])
+	while queue:
+		current = queue.popleft()
+		for dep in graph.get(current, set()):
+			if dep not in depths:
+				depths[dep] = depths[current] + 1
+				queue.append(dep)
+	return depths
 
 
 def _get_depth(doctype: str, graph: dict[str, set[str]], target: str) -> int:

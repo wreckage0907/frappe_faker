@@ -137,19 +137,47 @@ def _extract_field_info(df) -> dict[str, Any] | None:
 	return info
 
 
-def get_existing_records(doctype: str, limit: int = 20) -> list[str]:
-	"""Get names of existing records for a doctype (for Link field references)."""
+def get_existing_records(
+	doctype: str,
+	limit: int = 20,
+	cache: dict[str, list[str]] | None = None,
+) -> list[str]:
+	"""
+	Get names of existing records for a doctype (for Link field references).
+
+	Args:
+		doctype: The doctype to query
+		limit: Max records to fetch
+		cache: Optional dict to use as a within-run cache. If provided and the
+		       doctype is already in the cache, no DB query is made.
+	"""
+	if cache is not None and doctype in cache:
+		return cache[doctype]
+
 	try:
-		return frappe.get_all(doctype, pluck="name", limit_page_length=limit, order_by="creation desc")
+		result = frappe.get_all(doctype, pluck="name", limit_page_length=limit, order_by="creation desc")
 	except Exception:
-		return []
+		result = []
+
+	if cache is not None:
+		cache[doctype] = result
+
+	return result
 
 
-def get_generation_context(doctype: str) -> dict[str, Any]:
+def get_generation_context(
+	doctype: str,
+	existing_cache: dict[str, list[str]] | None = None,
+) -> dict[str, Any]:
 	"""
 	Build full context for generation: schema + existing linked records.
 
 	This is what gets sent to the LLM for data generation.
+
+	Args:
+		doctype: The doctype to build context for
+		existing_cache: Optional shared cache dict (avoids repeated DB queries
+		                when building contexts for multiple doctypes in one run)
 	"""
 	schema = analyze_doctype(doctype)
 
@@ -169,7 +197,7 @@ def get_generation_context(doctype: str) -> dict[str, Any]:
 
 	existing_links: dict[str, list[str]] = {}
 	for dep in all_link_doctypes:
-		existing_links[dep] = get_existing_records(dep)
+		existing_links[dep] = get_existing_records(dep, cache=existing_cache)
 
 	return {
 		"schema": schema,

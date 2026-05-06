@@ -97,6 +97,7 @@ def _get_settings() -> dict[str, Any]:
 		"api_key": doc.get_password("api_key") if doc.api_key else None,
 		"api_endpoint": doc.api_endpoint,
 		"model_name": doc.model_name,
+		"default_count": int(doc.default_count or 10),
 	}
 
 

@@ -164,8 +164,7 @@ def generate_and_insert(
 	settings = get_settings()
 
 	if count is None:
-		settings_doc = frappe.get_single("Faker Settings")
-		count = int(settings_doc.default_count or 10)
+		count = settings.get("default_count", 10)
 
 	results: list[dict[str, Any]] = []
 	# Normalise skip — accepts set or list (RQ requires JSON-serialisable list)
@@ -193,11 +192,15 @@ def generate_and_insert(
 	# ------------------------------------------------------------------
 	existing_cache: dict[str, list[str]] = {}
 	contexts: dict[str, dict[str, Any]] = {}
+	# Track context failures to avoid duplicate result entries (context error
+	# + generation "Context not available" error for the same doctype).
+	context_failed: set[str] = set()
 
 	for dt, _cnt in tasks:
 		try:
 			contexts[dt] = get_generation_context(dt, existing_cache=existing_cache)
 		except Exception as e:
+			context_failed.add(dt)
 			results.append(
 				{
 					"doctype": dt,
@@ -226,7 +229,9 @@ def generate_and_insert(
 			return dt, None, str(exc)
 
 	with ThreadPoolExecutor(max_workers=min(len(tasks), 8)) as executor:
-		futures = {executor.submit(_generate, dt, cnt): (dt, cnt) for dt, cnt in tasks}
+		futures = {
+			executor.submit(_generate, dt, cnt): (dt, cnt) for dt, cnt in tasks if dt not in context_failed
+		}
 		for future in as_completed(futures):
 			dt, records, error = future.result()
 			if error:
@@ -240,6 +245,8 @@ def generate_and_insert(
 	_insert = insert_records_fast if fast_insert else insert_records
 
 	for dt, _cnt in tasks:
+		if dt in context_failed:
+			continue  # already recorded a result during context build
 		if dt in generation_errors:
 			results.append(
 				{

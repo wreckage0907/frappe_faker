@@ -161,27 +161,6 @@ def _compute_depths(graph: dict[str, set[str]], target: str) -> dict[str, int]:
 	return depths
 
 
-def _get_depth(doctype: str, graph: dict[str, set[str]], target: str) -> int:
-	"""Get the depth of a doctype relative to the target (0 = target itself)."""
-	if doctype == target:
-		return 0
-
-	# BFS from target
-	from collections import deque
-
-	queue = deque([(target, 0)])
-	seen = {target}
-	while queue:
-		current, depth = queue.popleft()
-		for dep in graph.get(current, set()):
-			if dep == doctype:
-				return depth + 1
-			if dep not in seen:
-				seen.add(dep)
-				queue.append((dep, depth + 1))
-	return -1  # not reachable (shouldn't happen)
-
-
 def _has_existing_data(doctype: str) -> bool:
 	"""Check if a doctype already has records."""
 	try:

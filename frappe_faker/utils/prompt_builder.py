@@ -15,7 +15,7 @@ Rules:
 2. Field names must match EXACTLY as specified in the schema.
 3. For Link fields, you MUST use one of the provided existing record names. If none are provided, use a realistic placeholder name that follows the doctype's naming convention.
 4. For Select fields, ONLY use one of the provided options.
-5. For Date/Datetime fields, use ISO format (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS). Use dates within the last 2 years.
+5. For Date fields use YYYY-MM-DD. For Datetime fields use YYYY-MM-DD HH:MM:SS (NO timezone suffix, NO 'Z', NO '+00:00'). Use dates within the last 2 years.
 6. For Currency/Float/Int fields, use realistic business values.
 7. For Check fields, use 0 or 1.
 8. For child tables, include them as arrays under the fieldname key.

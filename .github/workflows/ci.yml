@@ -36,22 +36,17 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v6
-
-      - name: Find tests
-        run: |
-          echo "Finding tests"
-          grep -rn "def test" > /dev/null
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.12'
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           check-latest: true
 
       - name: Cache pip
@@ -100,6 +95,14 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app frappe_faker
+          bench --site test_site run-tests --app frappe_faker --coverage
         env:
           TYPE: server
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: /home/runner/frappe-bench/sites/.coverage
+          if-no-files-found: ignore

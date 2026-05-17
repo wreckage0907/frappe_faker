@@ -36,6 +36,10 @@ venv.bak/
 node_modules/
 jspm_packages/
 
+# Frontend build artifacts
+frappe_faker/public/frontend/
+frappe_faker/www/frontend.html
+
 # IDEs and editors
 .vscode/
 .vs/

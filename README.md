@@ -12,6 +12,20 @@ bench get-app $URL_OF_THIS_REPO --branch develop
 bench install-app frappe_faker
 ```
 
+### Configuration
+
+Open **Faker Settings** and choose an AI provider. Supported providers are:
+
+- OpenAI
+- Anthropic
+- Gemini
+- Ollama
+- Custom OpenAI-compatible endpoint
+
+For Gemini, paste a Google AI Studio API key into **API Key**. If **Model Name** is left blank,
+Frappe Faker uses `gemini-2.5-flash`. **API Endpoint** is optional and should only be set when
+you need to override the default Gemini `generateContent` endpoint.
+
 ### Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:

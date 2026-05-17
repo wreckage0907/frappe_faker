@@ -14,7 +14,7 @@ class FakerSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		ai_provider: DF.Literal["", "OpenAI", "Anthropic", "Ollama", "Custom"]
+		ai_provider: DF.Literal["", "OpenAI", "Anthropic", "Gemini", "Ollama", "Custom"]
 		api_endpoint: DF.Data | None
 		api_key: DF.Password | None
 		default_count: DF.Int

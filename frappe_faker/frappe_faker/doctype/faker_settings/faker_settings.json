@@ -23,7 +23,7 @@
    "fieldname": "ai_provider",
    "fieldtype": "Select",
    "label": "AI Provider",
-   "options": "\nOpenAI\nAnthropic\nOllama\nCustom"
+   "options": "\nOpenAI\nAnthropic\nGemini\nOllama\nCustom"
   },
   {
    "fieldname": "api_key",
@@ -58,7 +58,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-11 15:53:41.447285",
+ "modified": "2026-05-17 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Faker",
  "name": "Faker Settings",

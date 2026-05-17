@@ -240,7 +240,7 @@ def _build_gemini_endpoint(api_endpoint: str | None, model: str) -> str:
 	"""Build a Gemini generateContent endpoint, allowing a custom full endpoint."""
 	if api_endpoint:
 		if "{model}" in api_endpoint:
-			return api_endpoint.format(model=model)
+			return api_endpoint.replace("{model}", model)
 		return api_endpoint
 
 	model_path = model if model.startswith("models/") else f"models/{model}"
@@ -263,14 +263,15 @@ def _parse_response(raw: str) -> list[dict[str, Any]]:
 		return json.loads(text)
 	except json.JSONDecodeError as original_error:
 		# Some providers can still append short prose despite JSON-mode hints.
-		# Parse the first JSON value so a valid array followed by commentary
+		# Parse the first JSON array so a valid array followed by commentary
 		# does not force another paid/network retry.
 		decoder = json.JSONDecoder()
-		start_positions = sorted(pos for pos in (text.find("["), text.find("{")) if pos != -1)
-		for start in start_positions:
+		array_start = text.find("[")
+		if array_start != -1:
 			try:
-				parsed, _end = decoder.raw_decode(text[start:])
-				return parsed
+				parsed, _end = decoder.raw_decode(text[array_start:])
+				if isinstance(parsed, list):
+					return parsed
 			except json.JSONDecodeError:
-				continue
+				pass
 		raise original_error

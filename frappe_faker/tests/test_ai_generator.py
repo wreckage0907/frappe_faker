@@ -105,6 +105,16 @@ class TestParseResponse(UnitTestCase):
 		result = _parse_response(raw)
 		self.assertEqual(result[0]["title"], "Hello")
 
+	def test_extracts_json_array_after_earlier_json_object_snippet(self):
+		raw = 'Example object: {"not": "the response"}\n[{"title": "Hello"}]'
+		result = _parse_response(raw)
+		self.assertEqual(result[0]["title"], "Hello")
+
+	def test_fallback_does_not_return_json_object(self):
+		raw = '{"title": "Not an array"}\nExtra text'
+		with self.assertRaises(json.JSONDecodeError):
+			_parse_response(raw)
+
 
 # ---------------------------------------------------------------------------
 # generate_records tests (mock _call_llm)
@@ -231,6 +241,13 @@ class TestGeminiProvider(UnitTestCase):
 	def test_gemini_endpoint_custom_model_placeholder(self):
 		endpoint = _build_gemini_endpoint("https://example.test/{model}:generateContent", "gemini-test")
 		self.assertEqual(endpoint, "https://example.test/gemini-test:generateContent")
+
+	def test_gemini_endpoint_replaces_only_model_placeholder(self):
+		endpoint = _build_gemini_endpoint(
+			"https://example.test/{model}:generateContent?alt={json}",
+			"gemini-test",
+		)
+		self.assertEqual(endpoint, "https://example.test/gemini-test:generateContent?alt={json}")
 
 	@patch("frappe_faker.utils.ai_generator.requests.post")
 	def test_call_llm_dispatches_to_gemini(self, mock_post):

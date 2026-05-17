@@ -1,8 +1,8 @@
 """
 AI Generator — calls the configured LLM to generate fake data.
 
-Supports OpenAI-compatible APIs (OpenAI, Ollama, Custom endpoints)
-and Anthropic's API.
+Supports OpenAI-compatible APIs (OpenAI, Ollama, Custom endpoints),
+Anthropic's API, and Google's Gemini API.
 """
 
 from __future__ import annotations
@@ -109,6 +109,8 @@ def _call_llm(settings: dict[str, Any], prompt: str, attempt_num: int = 0) -> st
 		return _call_openai_compatible(settings, prompt)
 	elif provider == "Anthropic":
 		return _call_anthropic(settings, prompt)
+	elif provider == "Gemini":
+		return _call_gemini(settings, prompt)
 	else:
 		raise GenerationError(f"Unsupported AI provider: {provider}")
 
@@ -185,6 +187,66 @@ def _call_anthropic(settings: dict[str, Any], prompt: str) -> str:
 		raise GenerationError(f"Unexpected Anthropic API response format: {e}")
 
 
+def _call_gemini(settings: dict[str, Any], prompt: str) -> str:
+	"""Call Google's Gemini generateContent REST API."""
+	api_key = settings["api_key"]
+	if not api_key:
+		frappe.throw(_("API Key is required for Gemini provider"))
+
+	model = settings["model_name"] or "gemini-2.5-flash"
+	endpoint = _build_gemini_endpoint(settings.get("api_endpoint"), model)
+
+	headers = {
+		"Content-Type": "application/json",
+		"x-goog-api-key": api_key,
+	}
+	payload = {
+		"system_instruction": {
+			"parts": [{"text": SYSTEM_PROMPT}],
+		},
+		"contents": [
+			{
+				"role": "user",
+				"parts": [{"text": prompt}],
+			}
+		],
+		"generationConfig": {
+			"temperature": 0.7,
+			"response_mime_type": "application/json",
+		},
+	}
+
+	response = requests.post(endpoint, json=payload, headers=headers, timeout=300)
+
+	if response.status_code != 200:
+		raise GenerationError(f"Gemini API returned {response.status_code}: {response.text[:500]}")
+
+	try:
+		data = response.json()
+		candidate = data["candidates"][0]
+		parts = candidate["content"]["parts"]
+		text = "".join(part.get("text", "") for part in parts).strip()
+		if not text:
+			finish_reason = candidate.get("finishReason") or data.get("promptFeedback") or "empty response"
+			raise GenerationError(f"Gemini API returned no text: {finish_reason}")
+		return text
+	except GenerationError:
+		raise
+	except (ValueError, KeyError, IndexError, TypeError) as e:
+		raise GenerationError(f"Unexpected Gemini API response format: {e}")
+
+
+def _build_gemini_endpoint(api_endpoint: str | None, model: str) -> str:
+	"""Build a Gemini generateContent endpoint, allowing a custom full endpoint."""
+	if api_endpoint:
+		if "{model}" in api_endpoint:
+			return api_endpoint.format(model=model)
+		return api_endpoint
+
+	model_path = model if model.startswith("models/") else f"models/{model}"
+	return f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent"
+
+
 def _parse_response(raw: str) -> list[dict[str, Any]]:
 	"""Parse LLM response, handling common formatting issues."""
 	text = raw.strip()
@@ -197,4 +259,18 @@ def _parse_response(raw: str) -> list[dict[str, Any]]:
 			text = text[:-3]
 		text = text.strip()
 
-	return json.loads(text)
+	try:
+		return json.loads(text)
+	except json.JSONDecodeError as original_error:
+		# Some providers can still append short prose despite JSON-mode hints.
+		# Parse the first JSON value so a valid array followed by commentary
+		# does not force another paid/network retry.
+		decoder = json.JSONDecoder()
+		start_positions = sorted(pos for pos in (text.find("["), text.find("{")) if pos != -1)
+		for start in start_positions:
+			try:
+				parsed, _end = decoder.raw_decode(text[start:])
+				return parsed
+			except json.JSONDecodeError:
+				continue
+		raise original_error

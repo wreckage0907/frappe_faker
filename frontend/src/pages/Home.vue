@@ -1,41 +1,86 @@
 <template>
-	<div class="max-w-3xl py-12 mx-auto">
-		<h2 class="font-bold text-lg text-gray-600 mb-4">Welcome {{ session.user }}!</h2>
+	<div class="flex h-screen bg-white">
+		<!-- Sidebar -->
+		<div class="w-56 flex-shrink-0 border-r border-gray-100 flex flex-col">
+			<div class="px-4 py-5 border-b border-gray-100">
+				<div class="flex items-center gap-2">
+					<span class="text-xl">🧪</span>
+					<span class="font-semibold text-gray-800 text-sm">Frappe Faker</span>
+				</div>
+			</div>
 
-		<Button
-			theme="gray"
-			variant="solid"
-			icon-left="code"
-			@click="ping.fetch"
-			:loading="ping.loading"
-		>
-			Click to send 'ping' request
-		</Button>
-		<div>
-			{{ ping.data }}
+			<nav class="flex-1 px-2 py-3 space-y-0.5">
+				<button
+					class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+					:class="
+						activePanel === 'generate'
+							? 'bg-blue-50 text-blue-700'
+							: 'text-gray-600 hover:bg-gray-100'
+					"
+					@click="activePanel = 'generate'"
+				>
+					<FeatherIcon name="zap" class="w-4 h-4" />
+					Generate
+				</button>
+			</nav>
+
+			<div class="px-2 py-3 border-t border-gray-100">
+				<button
+					class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-500 hover:bg-gray-100 transition-colors"
+					@click="session.logout.submit()"
+				>
+					<FeatherIcon name="log-out" class="w-4 h-4" />
+					Logout
+				</button>
+			</div>
 		</div>
-		<pre>{{ ping }}</pre>
 
-		<div class="flex flex-row space-x-2 mt-4">
-			<Button @click="showDialog = true">Open Dialog</Button>
-			<Button @click="session.logout.submit()">Logout</Button>
+		<!-- Main content -->
+		<div class="flex-1 overflow-y-auto">
+			<div class="p-10">
+				<GenerateForm
+					v-if="generation.phase.value === 'idle' || generation.phase.value === 'error'"
+					:is-generating="false"
+					:prev-error="generation.error.value"
+					:initial-doctype="lastDoctype"
+					@submit="handleSubmit"
+				/>
+
+				<JobProgress
+					v-else-if="generation.phase.value === 'generating'"
+					:doctype="currentDoctype"
+					:job-status="generation.jobStatus.value"
+					:poll-count="generation.pollCount.value"
+					@cancel="generation.reset()"
+				/>
+
+				<ResultsSummary
+					v-else-if="generation.phase.value === 'done'"
+					:result="generation.result.value"
+					@reset="generation.reset()"
+				/>
+			</div>
 		</div>
-
-		<!-- Dialog -->
-		<Dialog title="Title" v-model="showDialog"> Dialog content </Dialog>
 	</div>
 </template>
 
 <script setup>
-import { Dialog } from "frappe-ui";
-import { createResource } from "frappe-ui";
 import { ref } from "vue";
 import { session } from "../data/session";
+import { useGeneration } from "../composables/useGeneration";
+import GenerateForm from "../components/GenerateForm.vue";
+import JobProgress from "../components/JobProgress.vue";
+import ResultsSummary from "../components/ResultsSummary.vue";
 
-const ping = createResource({
-	url: "ping",
-	auto: true,
-});
+const activePanel = ref("generate");
+const currentDoctype = ref("");
+const lastDoctype = ref("");
 
-const showDialog = ref(false);
+const generation = useGeneration();
+
+function handleSubmit(params) {
+	currentDoctype.value = params.doctype;
+	lastDoctype.value = params.doctype;
+	generation.startGeneration(params);
+}
 </script>

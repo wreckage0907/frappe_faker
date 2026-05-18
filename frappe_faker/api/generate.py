@@ -97,6 +97,27 @@ def get_job_status(job_id: str) -> dict[str, Any]:
 
 
 @frappe.whitelist()
+def get_faker_settings() -> dict[str, Any]:
+	"""Return current Faker Settings for UI defaults."""
+	_require_system_manager()
+	settings = frappe.get_single("Faker Settings")
+	return {
+		"default_count": int(settings.default_count or 10),
+		"provider": settings.ai_provider or "",
+		"model_name": settings.model_name or "",
+	}
+
+
+@frappe.whitelist()
+def get_dependency_tree(doctype: str, skip: str | list | None = None) -> dict[str, Any]:
+	"""Return the resolved dependency order for a doctype (for UI preview)."""
+	_require_system_manager()
+	from frappe_faker.utils.dependency_graph import resolve_dependencies
+
+	return resolve_dependencies(doctype, skip=set(_parse_list(skip)))
+
+
+@frappe.whitelist()
 def generate_sync(
 	doctype: str,
 	count: int | None = None,

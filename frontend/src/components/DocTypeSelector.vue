@@ -34,13 +34,17 @@ function onSelect(option) {
 	emit("update:modelValue", option?.value ?? "");
 }
 
+function escapeLike(q) {
+	return q.replace(/[%_\\]/g, "\\$&");
+}
+
 async function fetchDoctypes(query) {
 	loading.value = true;
 	try {
 		const rows = await call("frappe.client.get_list", {
 			doctype: "DocType",
 			fields: ["name"],
-			filters: query ? [["name", "like", `%${query}%`]] : [],
+			filters: query ? [["name", "like", `%${escapeLike(query)}%`]] : [],
 			limit: 20,
 			order_by: "name asc",
 		});

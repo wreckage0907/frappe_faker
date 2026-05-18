@@ -126,11 +126,12 @@ import DocTypeSelector from "./DocTypeSelector.vue";
 const props = defineProps({
 	isGenerating: Boolean,
 	prevError: { type: String, default: null },
+	initialDoctype: { type: String, default: "" },
 });
 
 const emit = defineEmits(["submit"]);
 
-const doctype = ref("");
+const doctype = ref(props.initialDoctype);
 const countStr = ref("10");
 const resolveDeps = ref(true);
 const fastInsert = ref(true);

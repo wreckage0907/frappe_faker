@@ -10,7 +10,7 @@ export function useGeneration() {
 
 	let pollTimer = null;
 	let failCount = 0;
-	let pollCount = 0;
+	const pollCount = ref(0);
 
 	async function startGeneration({
 		doctype,
@@ -26,7 +26,7 @@ export function useGeneration() {
 		result.value = null;
 		error.value = null;
 		failCount = 0;
-		pollCount = 0;
+		pollCount.value = 0;
 
 		try {
 			const resp = await call("frappe_faker.api.generate.enqueue_generation", {
@@ -53,7 +53,7 @@ export function useGeneration() {
 	}
 
 	async function pollOnce() {
-		pollCount++;
+		pollCount.value++;
 		try {
 			const resp = await call("frappe_faker.api.generate.get_job_status", {
 				job_id: jobId.value,
@@ -88,6 +88,12 @@ export function useGeneration() {
 					"Job not found. The background worker may be offline — check your Frappe worker processes.";
 				phase.value = "error";
 				stopPolling();
+				toast({
+					title: "Job not found",
+					text: error.value,
+					icon: "alert-circle",
+					iconClasses: "text-red-600",
+				});
 			}
 		} catch {
 			failCount++;
@@ -114,7 +120,7 @@ export function useGeneration() {
 		result.value = null;
 		error.value = null;
 		failCount = 0;
-		pollCount = 0;
+		pollCount.value = 0;
 	}
 
 	onUnmounted(stopPolling);

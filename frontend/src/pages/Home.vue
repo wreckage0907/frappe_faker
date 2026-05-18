@@ -42,6 +42,7 @@
 					v-if="generation.phase.value === 'idle' || generation.phase.value === 'error'"
 					:is-generating="false"
 					:prev-error="generation.error.value"
+					:initial-doctype="lastDoctype"
 					@submit="handleSubmit"
 				/>
 
@@ -73,11 +74,13 @@ import ResultsSummary from "../components/ResultsSummary.vue";
 
 const activePanel = ref("generate");
 const currentDoctype = ref("");
+const lastDoctype = ref("");
 
 const generation = useGeneration();
 
 function handleSubmit(params) {
 	currentDoctype.value = params.doctype;
+	lastDoctype.value = params.doctype;
 	generation.startGeneration(params);
 }
 </script>

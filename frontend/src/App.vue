@@ -1,5 +1,9 @@
 <template>
-	<div>
+	<FrappeUIProvider>
 		<router-view />
-	</div>
+	</FrappeUIProvider>
 </template>
+
+<script setup>
+import { FrappeUIProvider } from "frappe-ui";
+</script>

@@ -41,7 +41,7 @@ def _load_adjacency_map() -> dict[str, list[str]] | None:
 	try:
 		path = _cache_file_path()
 		if os.path.exists(path):
-			with open(path) as f:
+			with open(path) as f:  # nosemgrep: python.lang.security.audit.path-traversal.path-traversal-open
 				return json.load(f)
 	except Exception:
 		pass
@@ -50,19 +50,28 @@ def _load_adjacency_map() -> dict[str, list[str]] | None:
 
 def _save_adjacency_map(adj: dict[str, list[str]]) -> None:
 	"""Atomically write adjacency map to file and prime Redis."""
+	file_saved = False
 	path = _cache_file_path()
 	try:
 		dir_ = os.path.dirname(path)
 		with tempfile.NamedTemporaryFile("w", dir=dir_, delete=False, suffix=".tmp") as tmp:
 			json.dump(adj, tmp)
+			tmp.flush()
 			tmp_path = tmp.name
 		os.replace(tmp_path, path)
+		file_saved = True
 	except Exception:
 		pass
+
+	redis_saved = False
 	try:
 		frappe.cache.set_value(_REDIS_KEY, adj, expires_in_sec=_REDIS_TTL)
+		redis_saved = True
 	except Exception:
 		pass
+
+	if not file_saved and not redis_saved:
+		raise RuntimeError("frappe_faker: failed to persist dependency adjacency map to both file and Redis")
 
 
 def _build_global_adjacency_map() -> dict[str, list[str]]:

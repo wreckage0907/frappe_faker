@@ -2,7 +2,7 @@
 	<div class="max-w-3xl mx-auto">
 		<div class="mb-8 flex items-center justify-between">
 			<div>
-				<h1 class="text-2xl font-medium text-ink-gray-9">History</h1>
+				<h1 class="text-2xl font-semibold text-ink-gray-9">History</h1>
 				<p class="text-sm text-ink-gray-5 mt-1">Last 20 generation runs.</p>
 			</div>
 			<Button

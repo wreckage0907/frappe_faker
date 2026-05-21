@@ -1,21 +1,41 @@
 <template>
-	<div class="max-w-2xl mx-auto">
+	<div class="max-w-2xl">
 		<!-- Header -->
 		<div class="mb-6">
-			<div v-if="totalFailed === 0" class="flex items-center gap-2">
-				<FeatherIcon name="check-circle" class="w-6 h-6 text-green-500" />
-				<h1 class="text-2xl font-medium text-ink-gray-9">
-					Generated {{ totalCreated }} records for
-					<span class="text-blue-600">{{ result.target }}</span>
-				</h1>
+			<div v-if="totalFailed === 0" class="flex items-start gap-3">
+				<div
+					class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-50"
+				>
+					<FeatherIcon name="check-circle" class="w-5 h-5 text-green-500" />
+				</div>
+				<div>
+					<h1 class="text-2xl font-semibold text-ink-gray-9">
+						Generated {{ totalCreated }} records
+					</h1>
+					<p class="text-sm text-ink-gray-5 mt-0.5">
+						DocType:
+						<span class="font-medium text-ink-gray-7">{{ result.target }}</span>
+					</p>
+				</div>
 			</div>
-			<div v-else class="flex items-center gap-2">
-				<FeatherIcon name="alert-triangle" class="w-6 h-6 text-yellow-500" />
-				<h1 class="text-2xl font-medium text-ink-gray-9">
-					{{ totalCreated }} created,
-					<span class="text-red-600">{{ totalFailed }} failed</span>
-					for {{ result.target }}
-				</h1>
+			<div v-else class="flex items-start gap-3">
+				<div
+					class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-yellow-50"
+				>
+					<FeatherIcon name="alert-triangle" class="w-5 h-5 text-yellow-500" />
+				</div>
+				<div>
+					<h1 class="text-2xl font-semibold text-ink-gray-9">
+						{{ totalCreated }} created
+						<span v-if="totalFailed > 0" class="text-red-500"
+							>, {{ totalFailed }} failed</span
+						>
+					</h1>
+					<p class="text-sm text-ink-gray-5 mt-0.5">
+						DocType:
+						<span class="font-medium text-ink-gray-7">{{ result.target }}</span>
+					</p>
+				</div>
 			</div>
 
 			<Alert

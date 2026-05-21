@@ -1,11 +1,13 @@
 <template>
-	<div class="max-w-2xl mx-auto">
+	<div class="max-w-2xl">
 		<div class="mb-8">
-			<h1 class="text-2xl font-medium text-ink-gray-9">
-				Generating
-				<span class="text-blue-600">{{ doctype }}</span>
-				<Spinner class="inline-block ml-2 w-5 h-5 text-blue-500" />
-			</h1>
+			<div class="flex items-center gap-2.5">
+				<h1 class="text-2xl font-semibold text-ink-gray-9">
+					Generating
+					<span class="text-blue-600">{{ doctype }}</span>
+				</h1>
+				<Spinner class="w-5 h-5 text-blue-500 flex-shrink-0" />
+			</div>
 			<p class="text-sm text-ink-gray-5 mt-1">
 				Records are being generated in the background.
 			</p>

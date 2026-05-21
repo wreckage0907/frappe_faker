@@ -44,7 +44,7 @@
 
 		<!-- Main content -->
 		<div class="flex-1 overflow-y-auto">
-			<div class="p-5">
+			<div class="px-8 py-8">
 				<!-- Generate panel -->
 				<template v-if="activePanel === 'generate'">
 					<GenerateForm

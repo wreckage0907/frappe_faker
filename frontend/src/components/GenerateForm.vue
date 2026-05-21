@@ -172,5 +172,5 @@ function handleGenerate() {
 	});
 }
 
-defineExpose({ doctype });
+defineExpose({ doctype, submit: handleGenerate });
 </script>

@@ -63,14 +63,17 @@ const props = defineProps({
 
 const emit = defineEmits(["cancel"]);
 
-// Fake progress: increments slowly to 90%, then jumps to 100 on finish
-const fakeProgress = ref(0);
+// Fake progress: starts at 5%, ramps quickly to 30% then slows to 90%.
+// Never sits at 0 — even a queued job shows visible activity.
+const fakeProgress = ref(5);
 let progressTimer = null;
 
 onMounted(() => {
 	progressTimer = setInterval(() => {
 		if (fakeProgress.value < 90) {
-			fakeProgress.value = Math.min(90, fakeProgress.value + 0.4);
+			// Fast early ramp (5→30%), gradual after that
+			const increment = fakeProgress.value < 30 ? 1.2 : 0.4;
+			fakeProgress.value = Math.min(90, fakeProgress.value + increment);
 		}
 	}, 500);
 });

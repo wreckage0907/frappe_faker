@@ -13,8 +13,9 @@
 						Generated {{ totalCreated }} records
 					</h1>
 					<p class="text-sm text-ink-gray-5 mt-0.5">
-						DocType:
 						<span class="font-medium text-ink-gray-7">{{ result.target }}</span>
+						<span class="mx-1.5 text-ink-gray-3">·</span>
+						{{ result.count_requested }} requested
 					</p>
 				</div>
 			</div>
@@ -32,8 +33,9 @@
 						>
 					</h1>
 					<p class="text-sm text-ink-gray-5 mt-0.5">
-						DocType:
 						<span class="font-medium text-ink-gray-7">{{ result.target }}</span>
+						<span class="mx-1.5 text-ink-gray-3">·</span>
+						{{ result.count_requested }} requested
 					</p>
 				</div>
 			</div>

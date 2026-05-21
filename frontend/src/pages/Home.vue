@@ -45,44 +45,51 @@
 		<!-- Main content -->
 		<div class="flex-1 overflow-y-auto">
 			<div class="px-8 py-8">
-				<!-- Generate panel -->
-				<template v-if="activePanel === 'generate'">
-					<GenerateForm
-						v-if="
-							generation.phase.value === 'idle' || generation.phase.value === 'error'
-						"
-						ref="formRef"
-						:is-generating="false"
-						:prev-error="generation.error.value"
-						:initial-doctype="lastDoctype"
-						@submit="handleSubmit"
+				<Transition name="panel" mode="out-in">
+					<!-- Generate panel -->
+					<div v-if="activePanel === 'generate'" key="generate">
+						<Transition name="panel" mode="out-in">
+							<GenerateForm
+								v-if="
+									generation.phase.value === 'idle' ||
+									generation.phase.value === 'error'
+								"
+								key="form"
+								ref="formRef"
+								:is-generating="false"
+								:prev-error="generation.error.value"
+								:initial-doctype="lastDoctype"
+								@submit="handleSubmit"
+							/>
+							<JobProgress
+								v-else-if="generation.phase.value === 'generating'"
+								key="progress"
+								:doctype="currentDoctype"
+								:job-status="generation.jobStatus.value"
+								:poll-count="generation.pollCount.value"
+								@cancel="generation.reset()"
+							/>
+							<ResultsSummary
+								v-else-if="generation.phase.value === 'done'"
+								key="results"
+								:result="generation.result.value"
+								@reset="generation.reset()"
+							/>
+						</Transition>
+					</div>
+
+					<!-- History panel -->
+					<GenerationHistory
+						v-else-if="activePanel === 'history'"
+						key="history"
+						:history="genHistory.history.value"
+						:loading="genHistory.loading.value"
+						@clear="genHistory.clearAll()"
 					/>
 
-					<JobProgress
-						v-else-if="generation.phase.value === 'generating'"
-						:doctype="currentDoctype"
-						:job-status="generation.jobStatus.value"
-						:poll-count="generation.pollCount.value"
-						@cancel="generation.reset()"
-					/>
-
-					<ResultsSummary
-						v-else-if="generation.phase.value === 'done'"
-						:result="generation.result.value"
-						@reset="generation.reset()"
-					/>
-				</template>
-
-				<!-- History panel -->
-				<GenerationHistory
-					v-else-if="activePanel === 'history'"
-					:history="genHistory.history.value"
-					:loading="genHistory.loading.value"
-					@clear="genHistory.clearAll()"
-				/>
-
-				<!-- Settings panel -->
-				<SettingsPanel v-else-if="activePanel === 'settings'" />
+					<!-- Settings panel -->
+					<SettingsPanel v-else-if="activePanel === 'settings'" key="settings" />
+				</Transition>
 			</div>
 		</div>
 	</div>
@@ -170,3 +177,18 @@ function handleKeydown(e) {
 onMounted(() => document.addEventListener("keydown", handleKeydown));
 onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
 </script>
+
+<style scoped>
+.panel-enter-active,
+.panel-leave-active {
+	transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.panel-enter-from {
+	opacity: 0;
+	transform: translateY(6px);
+}
+.panel-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+</style>

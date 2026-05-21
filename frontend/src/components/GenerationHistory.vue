@@ -1,5 +1,5 @@
 <template>
-	<div class="max-w-3xl mx-auto">
+	<div class="max-w-2xl">
 		<div class="mb-8 flex items-center justify-between">
 			<div>
 				<h1 class="text-2xl font-semibold text-ink-gray-9">History</h1>
@@ -53,6 +53,9 @@
 					</span>
 				</div>
 				<div class="ml-4 flex flex-shrink-0 items-center gap-2">
+					<span class="text-xs text-ink-gray-4 mr-1">
+						req.&nbsp;{{ run.count_requested }}
+					</span>
 					<Badge
 						:label="`${run.total_created} created`"
 						theme="green"

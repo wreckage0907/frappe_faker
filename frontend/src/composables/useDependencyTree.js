@@ -9,7 +9,7 @@ export function useDependencyTree() {
 
 	async function fetchTree(doctype, skip = []) {
 		if (!doctype) {
-			tree.value = null;
+			clear();
 			return;
 		}
 		loading.value = true;

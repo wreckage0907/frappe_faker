@@ -121,11 +121,13 @@ const sortedOrder = computed(() => {
 
 const skipped = computed(() => new Set(props.modelValue));
 
-// Auto-select nodes that already have data when the tree first loads
+// Auto-select nodes that already have data on first load only.
+// If the user has already made selections, preserve them on tree refresh.
 watch(
 	() => props.tree,
 	(newTree) => {
 		if (!newTree) return;
+		if (props.modelValue.length > 0) return;
 		const autoSkip = newTree.order
 			.filter((r) => r.has_existing_data && r.depth > 0)
 			.map((r) => r.doctype);

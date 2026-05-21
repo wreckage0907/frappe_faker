@@ -87,8 +87,13 @@ def get_job_status(job_id: str) -> dict[str, Any]:
 		if rq_job_doc.status == "finished":
 			# serialize_job() doesn't expose the return value, so read it from the
 			# underlying RQ Job object directly via the .job property.
-			job_result = rq_job_doc.job.latest_result()
-			payload["result"] = job_result.return_value if job_result else {}
+			# Fall back to direct RQ if the result backend is unavailable or the
+			# RQ/Frappe version doesn't support latest_result().
+			try:
+				job_result = rq_job_doc.job.latest_result()
+				payload["result"] = job_result.return_value if job_result else {}
+			except Exception:
+				return _get_rq_job_status_direct(job_id)
 		if rq_job_doc.status == "failed":
 			payload["exc"] = rq_job_doc.exc_info or "Unknown error"
 		return payload

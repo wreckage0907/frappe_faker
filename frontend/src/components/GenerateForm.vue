@@ -1,8 +1,8 @@
 <template>
 	<div class="max-w-2xl mx-auto">
 		<div class="mb-8">
-			<h1 class="text-2xl font-semibold text-gray-900">Generate Fake Data</h1>
-			<p class="text-sm text-gray-500 mt-1">
+			<h1 class="text-2xl font-medium text-ink-gray-9">Generate Fake Data</h1>
+			<p class="text-sm text-ink-gray-5 mt-1">
 				Pick a DocType and generate realistic records using AI.
 			</p>
 		</div>
@@ -28,7 +28,7 @@
 		<div class="space-y-5">
 			<!-- DocType -->
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1.5">
+				<label class="block text-sm font-medium text-ink-gray-7 mb-1.5">
 					DocType <span class="text-red-500">*</span>
 				</label>
 				<DocTypeSelector v-model="doctype" />
@@ -36,7 +36,7 @@
 
 			<!-- Count -->
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1.5">
+				<label class="block text-sm font-medium text-ink-gray-7 mb-1.5">
 					Number of records
 				</label>
 				<TextInput
@@ -48,15 +48,15 @@
 					class="w-32"
 					@change="clampCount"
 				/>
-				<p class="text-xs text-gray-400 mt-1">Max 500 per generation run.</p>
+				<p class="text-xs text-ink-gray-4 mt-1">Max 500 per generation run.</p>
 			</div>
 
 			<!-- Toggles: resolve deps + fast insert -->
 			<div class="flex flex-col gap-3 pt-1">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-medium text-gray-700">Resolve dependencies</p>
-						<p class="text-xs text-gray-400">
+						<p class="text-sm font-medium text-ink-gray-7">Resolve dependencies</p>
+						<p class="text-xs text-ink-gray-4">
 							Auto-generate linked doctypes in the correct order.
 						</p>
 					</div>
@@ -64,8 +64,8 @@
 				</div>
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-medium text-gray-700">Fast insert</p>
-						<p class="text-xs text-gray-400">
+						<p class="text-sm font-medium text-ink-gray-7">Fast insert</p>
+						<p class="text-xs text-ink-gray-4">
 							Skips Python hooks — much faster, but side-effects won't run.
 						</p>
 					</div>
@@ -76,7 +76,7 @@
 			<!-- Advanced toggle -->
 			<button
 				type="button"
-				class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+				class="flex items-center gap-1.5 text-sm text-ink-gray-5 hover:text-ink-gray-7 transition-colors"
 				@click="showAdvanced = !showAdvanced"
 			>
 				<FeatherIcon
@@ -88,9 +88,9 @@
 
 			<div v-if="showAdvanced" class="space-y-4 pl-1">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1.5">
+					<label class="block text-sm font-medium text-ink-gray-7 mb-1.5">
 						Custom instructions
-						<span class="font-normal text-gray-400">(optional)</span>
+						<span class="font-normal text-ink-gray-4">(optional)</span>
 					</label>
 					<Textarea
 						v-model="customInstructions"

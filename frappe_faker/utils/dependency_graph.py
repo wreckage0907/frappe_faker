@@ -15,6 +15,61 @@ import frappe
 from frappe_faker.utils.constants import SYSTEM_DOCTYPE_BLOCKLIST
 from frappe_faker.utils.meta_analyzer import analyze_doctype
 
+# ---------------------------------------------------------------------------
+# Adjacency map cache — built eagerly on after_migrate, persisted to Redis
+# No TTL: cache is explicitly refreshed on every bench migrate via after_migrate().
+# ---------------------------------------------------------------------------
+
+_REDIS_KEY = "frappe_faker_dep_adjacency"
+
+
+def _load_adjacency_map() -> dict[str, list[str]] | None:
+	"""Load cached adjacency map from Redis. Returns None on miss."""
+	try:
+		return frappe.cache.get_value(_REDIS_KEY) or None
+	except Exception:
+		return None
+
+
+def _save_adjacency_map(adj: dict[str, list[str]]) -> None:
+	"""Persist adjacency map to Redis (no TTL — refreshed on every bench migrate)."""
+	try:
+		frappe.cache.set_value(_REDIS_KEY, adj)
+	except Exception as e:
+		raise RuntimeError("frappe_faker: failed to persist dependency adjacency map to Redis") from e
+
+
+def _build_global_adjacency_map() -> dict[str, list[str]]:
+	"""Scan every non-child DocType and return doctype → direct link dependencies."""
+	all_doctypes: list[str] = frappe.get_all("DocType", filters={"istable": 0}, pluck="name")
+	adj: dict[str, list[str]] = {}
+	for dt in all_doctypes:
+		try:
+			schema = analyze_doctype(dt)
+			adj[dt] = schema["link_dependencies"]
+		except Exception:
+			adj[dt] = []
+	return adj
+
+
+def after_migrate() -> None:
+	"""Hook: rebuild and persist the dependency adjacency map after every bench migrate."""
+	import click
+
+	try:
+		click.echo("Building frappe_faker dependency index...", nl=False)
+		adj = _build_global_adjacency_map()
+		_save_adjacency_map(adj)
+		click.echo(f" {len(adj)} doctypes indexed")
+	except Exception:
+		click.echo(" failed (see Error Log)")
+		frappe.log_error("frappe_faker: failed to build dependency adjacency cache")
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 
 def resolve_dependencies(
 	doctype: str,
@@ -39,7 +94,18 @@ def resolve_dependencies(
 	visited: set[str] = set()
 	truncated: list[str] = []
 
-	_build_graph(doctype, graph, visited, skip, max_depth, current_depth=0, truncated=truncated, is_root=True)
+	adj_cache = _load_adjacency_map()
+	_build_graph(
+		doctype,
+		graph,
+		visited,
+		skip,
+		max_depth,
+		current_depth=0,
+		truncated=truncated,
+		is_root=True,
+		adj_cache=adj_cache,
+	)
 
 	# Topological sort
 	order, cycles = _topological_sort(graph)
@@ -77,6 +143,7 @@ def _build_graph(
 	current_depth: int,
 	truncated: list[str],
 	is_root: bool = False,
+	adj_cache: dict[str, list[str]] | None = None,
 ) -> None:
 	"""Recursively build the dependency graph."""
 	if doctype in visited:
@@ -91,17 +158,24 @@ def _build_graph(
 		return
 
 	visited.add(doctype)
-	schema = analyze_doctype(doctype)
+
+	# Use pre-built adjacency cache when available to avoid repeated get_meta() calls
+	if adj_cache is not None and doctype in adj_cache:
+		raw_deps: list[str] = adj_cache[doctype]
+	else:
+		schema = analyze_doctype(doctype)
+		raw_deps = schema["link_dependencies"]
+
 	deps: set[str] = set()
 
-	for dep in schema["link_dependencies"]:
+	for dep in raw_deps:
 		if dep == doctype:
 			continue  # Self-reference
 		if dep in SYSTEM_DOCTYPE_BLOCKLIST or dep in skip:
 			continue
 		deps.add(dep)
 		# Recurse into dependency
-		_build_graph(dep, graph, visited, skip, max_depth, current_depth + 1, truncated)
+		_build_graph(dep, graph, visited, skip, max_depth, current_depth + 1, truncated, adj_cache=adj_cache)
 
 	graph[doctype] = deps
 

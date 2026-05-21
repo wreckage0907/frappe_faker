@@ -8,7 +8,7 @@
 		@change="onSelect"
 	>
 		<template #prefix>
-			<FeatherIcon name="search" class="w-4 h-4 text-gray-400 mr-1.5" />
+			<FeatherIcon name="search" class="w-4 h-4 text-ink-gray-4 mr-1.5" />
 		</template>
 	</Autocomplete>
 </template>

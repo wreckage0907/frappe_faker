@@ -1,53 +1,50 @@
 <template>
-	<div class="flex h-screen bg-white">
+	<div class="flex h-screen bg-surface-white">
 		<!-- Sidebar -->
-		<div class="flex w-56 flex-shrink-0 flex-col border-r border-gray-100">
-			<div class="border-b border-gray-100 px-4 py-5">
-				<div class="flex items-center gap-2">
-					<span class="text-xl">🧪</span>
-					<span class="text-sm font-semibold text-gray-800">Frappe Faker</span>
-				</div>
-			</div>
-
-			<nav class="flex-1 space-y-0.5 px-2 py-3">
-				<button
-					v-for="item in navItems"
-					:key="item.panel"
-					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-					:class="
-						activePanel === item.panel
-							? 'bg-blue-50 text-blue-700'
-							: 'text-gray-600 hover:bg-gray-100'
-					"
-					@click="activePanel = item.panel"
+		<Sidebar :sections="[{ items: navItems }]" :disable-collapse="true">
+			<template #header>
+				<div
+					class="flex items-center gap-2.5 border-b border-outline-gray-1 px-3 py-3.5 mb-1"
 				>
-					<FeatherIcon :name="item.icon" class="h-4 w-4" />
-					{{ item.label }}
-				</button>
-			</nav>
+					<FakerLogo class="size-7 rounded-lg flex-shrink-0" />
+					<span class="text-sm font-medium text-ink-gray-8">Frappe Faker</span>
+				</div>
+			</template>
 
-			<div class="border-t border-gray-100 px-2 py-3 space-y-0.5">
-				<div class="flex items-center gap-2 px-3 py-2">
-					<div
-						class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700"
-					>
-						{{ userInitial }}
+			<template #sidebar-item="{ item }">
+				<SidebarItem
+					:label="item.label"
+					:is-active="activePanel === item.panel"
+					:on-click="() => (activePanel = item.panel)"
+				>
+					<template #icon>
+						<FeatherIcon :name="item.icon" class="size-4 text-ink-gray-6" />
+					</template>
+				</SidebarItem>
+			</template>
+
+			<template #footer-items>
+				<div class="border-t border-outline-gray-1 pt-2 space-y-0.5">
+					<div class="flex items-center gap-2 px-3 py-2">
+						<div
+							class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-surface-gray-3 text-xs font-medium text-ink-gray-7"
+						>
+							{{ userInitial }}
+						</div>
+						<span class="truncate text-xs text-ink-gray-5">{{ session.user }}</span>
 					</div>
-					<span class="truncate text-xs text-gray-500">{{ session.user }}</span>
+					<SidebarItem label="Logout" :on-click="() => session.logout.submit()">
+						<template #icon>
+							<FeatherIcon name="log-out" class="size-4 text-ink-gray-6" />
+						</template>
+					</SidebarItem>
 				</div>
-				<button
-					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100"
-					@click="session.logout.submit()"
-				>
-					<FeatherIcon name="log-out" class="h-4 w-4" />
-					Logout
-				</button>
-			</div>
-		</div>
+			</template>
+		</Sidebar>
 
 		<!-- Main content -->
 		<div class="flex-1 overflow-y-auto">
-			<div class="p-10">
+			<div class="p-5">
 				<!-- Generate panel -->
 				<template v-if="activePanel === 'generate'">
 					<GenerateForm
@@ -96,6 +93,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { session } from "../data/session";
 import { useGeneration } from "../composables/useGeneration";
 import { useGenerationHistory } from "../composables/useGenerationHistory";
+import FakerLogo from "../components/FakerLogo.vue";
 import GenerateForm from "../components/GenerateForm.vue";
 import JobProgress from "../components/JobProgress.vue";
 import ResultsSummary from "../components/ResultsSummary.vue";

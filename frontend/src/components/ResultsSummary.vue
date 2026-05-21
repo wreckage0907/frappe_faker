@@ -4,14 +4,14 @@
 		<div class="mb-6">
 			<div v-if="totalFailed === 0" class="flex items-center gap-2">
 				<FeatherIcon name="check-circle" class="w-6 h-6 text-green-500" />
-				<h1 class="text-2xl font-semibold text-gray-900">
+				<h1 class="text-2xl font-medium text-ink-gray-9">
 					Generated {{ totalCreated }} records for
 					<span class="text-blue-600">{{ result.target }}</span>
 				</h1>
 			</div>
 			<div v-else class="flex items-center gap-2">
 				<FeatherIcon name="alert-triangle" class="w-6 h-6 text-yellow-500" />
-				<h1 class="text-2xl font-semibold text-gray-900">
+				<h1 class="text-2xl font-medium text-ink-gray-9">
 					{{ totalCreated }} created,
 					<span class="text-red-600">{{ totalFailed }} failed</span>
 					for {{ result.target }}
@@ -28,15 +28,15 @@
 		</div>
 
 		<!-- Per-doctype breakdown -->
-		<div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
+		<div class="border border-outline-gray-2 rounded-lg overflow-hidden mb-6">
 			<div
 				v-for="(row, idx) in result.results"
 				:key="row.doctype"
-				class="border-b border-gray-100 last:border-b-0"
+				class="border-b border-outline-gray-1 last:border-b-0"
 			>
 				<!-- Row header -->
 				<div
-					class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+					class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-surface-gray-1 transition-colors"
 					:class="{ 'bg-red-50': row.failed_count > 0 || row.error }"
 					@click="toggleExpanded(idx)"
 				>
@@ -46,7 +46,7 @@
 							name="alert-circle"
 							class="w-4 h-4 text-red-500 flex-shrink-0"
 						/>
-						<span class="text-sm font-medium text-gray-800">{{ row.doctype }}</span>
+						<span class="text-sm font-medium text-ink-gray-8">{{ row.doctype }}</span>
 					</div>
 					<div class="flex items-center gap-2">
 						<Badge
@@ -54,29 +54,32 @@
 							:label="`${row.created_count} created`"
 							theme="green"
 							size="sm"
+							variant="subtle"
 						/>
 						<Badge
 							v-if="row.failed_count > 0"
 							:label="`${row.failed_count} failed`"
 							theme="red"
 							size="sm"
+							variant="subtle"
 						/>
 						<Badge
 							v-if="row.error && row.total === 0"
 							label="Error"
 							theme="red"
 							size="sm"
+							variant="subtle"
 						/>
 						<FeatherIcon
 							v-if="row.failed_count > 0 || row.error"
 							:name="expanded[idx] ? 'chevron-up' : 'chevron-down'"
-							class="w-4 h-4 text-gray-400"
+							class="w-4 h-4 text-ink-gray-4"
 						/>
 					</div>
 				</div>
 
 				<!-- Expanded error details -->
-				<div v-if="expanded[idx]" class="bg-gray-50 px-4 pb-3 pt-1 space-y-2">
+				<div v-if="expanded[idx]" class="bg-surface-gray-1 px-4 pb-3 pt-1 space-y-2">
 					<!-- Context/generation error -->
 					<div
 						v-if="row.error"
@@ -89,9 +92,9 @@
 					<div
 						v-for="fail in row.failed"
 						:key="fail.index"
-						class="text-xs text-gray-600 bg-white rounded border border-gray-200 p-2"
+						class="text-xs text-ink-gray-6 bg-surface-white rounded border border-outline-gray-2 p-2"
 					>
-						<span class="font-medium text-gray-500"
+						<span class="font-medium text-ink-gray-5"
 							>Record #{{ fail.index + 1 }}:</span
 						>
 						{{ fail.error }}

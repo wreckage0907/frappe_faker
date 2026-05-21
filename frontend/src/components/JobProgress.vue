@@ -1,12 +1,12 @@
 <template>
 	<div class="max-w-2xl mx-auto">
 		<div class="mb-8">
-			<h1 class="text-2xl font-semibold text-gray-900">
+			<h1 class="text-2xl font-medium text-ink-gray-9">
 				Generating
 				<span class="text-blue-600">{{ doctype }}</span>
 				<Spinner class="inline-block ml-2 w-5 h-5 text-blue-500" />
 			</h1>
-			<p class="text-sm text-gray-500 mt-1">
+			<p class="text-sm text-ink-gray-5 mt-1">
 				Records are being generated in the background.
 			</p>
 		</div>
@@ -14,8 +14,8 @@
 		<!-- Progress bar -->
 		<div class="mb-6">
 			<div class="flex items-center justify-between mb-2">
-				<span class="text-sm text-gray-600">Progress</span>
-				<Badge :label="statusLabel" :theme="statusTheme" size="sm" />
+				<span class="text-sm text-ink-gray-6">Progress</span>
+				<Badge :label="statusLabel" :theme="statusTheme" size="sm" variant="subtle" />
 			</div>
 			<Progress :value="fakeProgress" size="lg" />
 		</div>
@@ -40,14 +40,10 @@
 
 		<!-- Cancel -->
 		<div class="mt-6">
-			<button
-				type="button"
-				class="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-				@click="emit('cancel')"
-			>
+			<Button variant="ghost" theme="gray" size="sm" @click="emit('cancel')">
 				Cancel and go back
-			</button>
-			<p class="text-xs text-gray-400 mt-1">
+			</Button>
+			<p class="text-xs text-ink-gray-4 mt-1">
 				The background job will continue; records already created will remain.
 			</p>
 		</div>

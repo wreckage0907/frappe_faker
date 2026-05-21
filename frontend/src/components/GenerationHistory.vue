@@ -2,8 +2,8 @@
 	<div class="max-w-3xl mx-auto">
 		<div class="mb-8 flex items-center justify-between">
 			<div>
-				<h1 class="text-2xl font-semibold text-gray-900">History</h1>
-				<p class="text-sm text-gray-500 mt-1">Last 20 generation runs.</p>
+				<h1 class="text-2xl font-medium text-ink-gray-9">History</h1>
+				<p class="text-sm text-ink-gray-5 mt-1">Last 20 generation runs.</p>
 			</div>
 			<Button
 				v-if="history.length"
@@ -19,7 +19,7 @@
 		<!-- Loading -->
 		<div
 			v-if="loading"
-			class="flex items-center gap-2 py-16 justify-center text-sm text-gray-400"
+			class="flex items-center gap-2 py-16 justify-center text-sm text-ink-gray-4"
 		>
 			<Spinner class="w-4 h-4" />
 			Loading history...
@@ -28,18 +28,18 @@
 		<!-- Empty state -->
 		<div
 			v-else-if="!history.length"
-			class="flex flex-col items-center justify-center py-24 text-gray-400"
+			class="flex flex-col items-center justify-center py-24 text-ink-gray-4"
 		>
 			<FeatherIcon name="clock" class="w-10 h-10 mb-3 opacity-40" />
 			<p class="text-sm">No generations yet — run one to see results here.</p>
 		</div>
 
 		<!-- Run list -->
-		<div v-else class="overflow-hidden rounded-lg border border-gray-200">
+		<div v-else class="overflow-hidden rounded-lg border border-outline-gray-2">
 			<div
 				v-for="run in history"
 				:key="run.name"
-				class="flex cursor-pointer items-center justify-between border-b border-gray-100 px-4 py-3 last:border-b-0 transition-colors hover:bg-gray-50"
+				class="flex cursor-pointer items-center justify-between border-b border-outline-gray-1 px-4 py-3 last:border-b-0 transition-colors hover:bg-surface-gray-1"
 				@click="openDetail(run)"
 			>
 				<div class="flex min-w-0 items-center gap-3">
@@ -48,19 +48,25 @@
 						class="h-4 w-4 flex-shrink-0"
 						:class="run.total_failed === 0 ? 'text-green-500' : 'text-yellow-500'"
 					/>
-					<span class="truncate text-sm font-medium text-gray-900">
+					<span class="truncate text-sm font-medium text-ink-gray-9">
 						{{ run.target_doctype }}
 					</span>
 				</div>
 				<div class="ml-4 flex flex-shrink-0 items-center gap-2">
-					<Badge :label="`${run.total_created} created`" theme="green" size="sm" />
+					<Badge
+						:label="`${run.total_created} created`"
+						theme="green"
+						size="sm"
+						variant="subtle"
+					/>
 					<Badge
 						v-if="run.total_failed > 0"
 						:label="`${run.total_failed} failed`"
 						theme="red"
 						size="sm"
+						variant="subtle"
 					/>
-					<span class="w-16 text-right text-xs text-gray-400">
+					<span class="w-16 text-right text-xs text-ink-gray-4">
 						{{ formatTime(run.creation) }}
 					</span>
 				</div>

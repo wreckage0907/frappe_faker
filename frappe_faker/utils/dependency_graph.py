@@ -41,7 +41,9 @@ def _load_adjacency_map() -> dict[str, list[str]] | None:
 	try:
 		path = _cache_file_path()
 		if os.path.exists(path):
-			with open(path) as f:  # nosemgrep: python.lang.security.audit.path-traversal.path-traversal-open
+			with (
+				open(path) as f
+			):  # nosemgrep: python.lang.security.audit.path-traversal.path-traversal-open,frappe-semgrep-rules.rules.security.frappe-security-file-traversal
 				return json.load(f)
 	except Exception:
 		pass

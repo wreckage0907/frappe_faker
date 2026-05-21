@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref } from "vue";
 import { createResource } from "frappe-ui";
 import DocTypeSelector from "./DocTypeSelector.vue";
 
@@ -140,7 +140,7 @@ const showAdvanced = ref(false);
 const settingsLoaded = ref(false);
 const settings = ref({ default_count: 10, provider: "", model_name: "" });
 
-const settingsResource = createResource({
+createResource({
 	url: "frappe_faker.api.generate.get_faker_settings",
 	auto: true,
 	onSuccess(data) {

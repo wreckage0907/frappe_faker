@@ -35,7 +35,7 @@ venv.bak/
 # Dependency directories
 node_modules/
 jspm_packages/
-
+node_modules
 # Frontend build artifacts
 frappe_faker/public/frontend/
 frappe_faker/www/frontend.html

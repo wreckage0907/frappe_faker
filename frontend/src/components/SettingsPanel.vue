@@ -1,8 +1,8 @@
 <template>
 	<div class="max-w-2xl mx-auto">
 		<div class="mb-8">
-			<h1 class="text-2xl font-semibold text-gray-900">Settings</h1>
-			<p class="text-sm text-gray-500 mt-1">Frappe Faker configuration.</p>
+			<h1 class="text-2xl font-medium text-ink-gray-9">Settings</h1>
+			<p class="text-sm text-ink-gray-5 mt-1">Frappe Faker configuration.</p>
 		</div>
 
 		<Alert
@@ -14,17 +14,17 @@
 		/>
 
 		<div
-			class="overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-100 mb-6"
+			class="overflow-hidden rounded-lg border border-outline-gray-2 divide-y divide-outline-gray-1 mb-6"
 		>
 			<div class="flex items-center justify-between px-4 py-3">
-				<span class="text-sm text-gray-500">AI Provider</span>
-				<span class="text-sm font-medium text-gray-900">{{
+				<span class="text-sm text-ink-gray-5">AI Provider</span>
+				<span class="text-sm font-medium text-ink-gray-9">{{
 					settings.provider || "—"
 				}}</span>
 			</div>
 			<div class="flex items-center justify-between px-4 py-3">
-				<span class="text-sm text-gray-500">Model</span>
-				<span class="text-sm font-medium text-gray-900">{{
+				<span class="text-sm text-ink-gray-5">Model</span>
+				<span class="text-sm font-medium text-ink-gray-9">{{
 					settings.model_name || "—"
 				}}</span>
 			</div>

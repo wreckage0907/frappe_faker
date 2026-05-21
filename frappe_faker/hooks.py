@@ -254,3 +254,5 @@ require_type_annotated_api_methods = True
 # ignore_translatable_strings_from = []
 
 website_route_rules = [{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"}]
+
+after_migrate = ["frappe_faker.utils.dependency_graph.after_migrate"]

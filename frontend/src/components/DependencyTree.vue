@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<!-- Loading -->
-		<div v-if="loading" class="flex items-center gap-2 py-3 text-sm text-gray-500">
+		<div v-if="loading" class="flex items-center gap-2 py-3 text-sm text-ink-gray-5">
 			<Spinner class="w-4 h-4" />
 			Analyzing dependencies...
 		</div>
@@ -17,7 +17,7 @@
 		<!-- Standalone: no dependencies -->
 		<p
 			v-else-if="tree && tree.order.length <= 1"
-			class="flex items-center gap-1.5 py-2 text-sm text-gray-500"
+			class="flex items-center gap-1.5 py-2 text-sm text-ink-gray-5"
 		>
 			<FeatherIcon name="check-circle" class="h-4 w-4 text-green-500" />
 			{{ targetDoctype }} has no dependencies — it generates standalone.
@@ -40,18 +40,18 @@
 				)} form a cycle — generation proceeds but some records may link incorrectly.`"
 			/>
 
-			<div class="overflow-hidden rounded-lg border border-gray-200">
+			<div class="overflow-hidden rounded-lg border border-outline-gray-2">
 				<div
 					v-for="row in sortedOrder"
 					:key="row.doctype"
-					class="flex items-center gap-2.5 border-b border-gray-100 py-2.5 pr-4 text-sm last:border-b-0"
+					class="flex items-center gap-2.5 border-b border-outline-gray-1 py-2.5 pr-4 text-sm last:border-b-0"
 					:style="{ paddingLeft: `${16 + row.depth * 16}px` }"
 				>
 					<input
 						v-if="row.depth > 0"
 						type="checkbox"
 						:checked="skipped.has(row.doctype)"
-						class="h-3.5 w-3.5 flex-shrink-0 cursor-pointer rounded border-gray-300 accent-blue-600"
+						class="h-3.5 w-3.5 flex-shrink-0 cursor-pointer rounded border-outline-gray-3 accent-blue-600"
 						@change="toggleSkip(row.doctype)"
 					/>
 					<div v-else class="h-3.5 w-3.5 flex-shrink-0" />
@@ -59,40 +59,54 @@
 					<FeatherIcon
 						v-if="row.depth > 0"
 						name="corner-down-right"
-						class="h-3.5 w-3.5 flex-shrink-0 text-gray-300"
+						class="h-3.5 w-3.5 flex-shrink-0 text-ink-gray-3"
 					/>
 
 					<span
 						class="flex-1 font-medium"
 						:class="
 							skipped.has(row.doctype)
-								? 'text-gray-400 line-through'
-								: 'text-gray-800'
+								? 'text-ink-gray-4 line-through'
+								: 'text-ink-gray-8'
 						"
 					>
 						{{ row.doctype }}
 					</span>
 
 					<div class="flex items-center gap-1.5">
-						<Badge v-if="row.depth === 0" label="Target" theme="blue" size="sm" />
+						<Badge
+							v-if="row.depth === 0"
+							label="Target"
+							theme="blue"
+							size="sm"
+							variant="subtle"
+						/>
 						<Badge
 							v-if="row.has_existing_data && !skipped.has(row.doctype)"
 							label="Has data"
 							theme="green"
 							size="sm"
+							variant="subtle"
 						/>
-						<Badge v-if="row.is_cyclic" label="Cyclic" theme="red" size="sm" />
+						<Badge
+							v-if="row.is_cyclic"
+							label="Cyclic"
+							theme="red"
+							size="sm"
+							variant="subtle"
+						/>
 						<Badge
 							v-if="skipped.has(row.doctype)"
 							label="Skip"
 							theme="gray"
 							size="sm"
+							variant="subtle"
 						/>
 					</div>
 				</div>
 			</div>
 
-			<p class="text-xs text-gray-400">
+			<p class="text-xs text-ink-gray-4">
 				Check a dependency to skip it — Frappe Faker will use existing records for that
 				DocType.
 			</p>

@@ -7,7 +7,7 @@ export function useGenerationHistory() {
 
 	const runsResource = createResource({
 		url: "frappe_faker.api.history.get_runs",
-		auto: true,
+		auto: false,
 		onSuccess(data) {
 			history.value = data;
 			loading.value = false;
@@ -20,6 +20,10 @@ export function useGenerationHistory() {
 		},
 	});
 
+	function reload() {
+		runsResource.reload();
+	}
+
 	async function addRun({ doctype, count, total_created, total_failed, result }) {
 		await call("frappe_faker.api.history.add_run", {
 			target_doctype: doctype,
@@ -28,7 +32,7 @@ export function useGenerationHistory() {
 			total_failed,
 			result: JSON.stringify(result),
 		});
-		runsResource.reload();
+		reload();
 	}
 
 	async function clearAll() {
@@ -36,5 +40,5 @@ export function useGenerationHistory() {
 		history.value = [];
 	}
 
-	return { history, loading, addRun, clearAll };
+	return { history, loading, addRun, clearAll, reload };
 }

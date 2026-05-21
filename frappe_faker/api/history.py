@@ -9,6 +9,8 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
+_MAX_RUNS = 20
+
 
 def _require_system_manager() -> None:
 	if not frappe.has_permission("Faker Settings", "write"):
@@ -52,13 +54,12 @@ def add_run(
 			"result": frappe.parse_json(result) if isinstance(result, str) else result,
 		}
 	)
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	doc.insert()
 	return {"name": doc.name}
 
 
 @frappe.whitelist()
-def get_runs(limit: int = 20) -> list:
+def get_runs(limit: int = _MAX_RUNS) -> list:
 	"""Return the last N Faker Run records owned by the current user, newest first."""
 	_require_system_manager()
 	rows = frappe.get_all(
@@ -75,7 +76,7 @@ def get_runs(limit: int = 20) -> list:
 			"result",
 		],
 		order_by="creation desc",
-		limit=int(limit),
+		limit=min(int(limit), _MAX_RUNS),
 	)
 	# frappe.get_all() returns JSON fields as raw strings in some Frappe versions;
 	# parse them here so the frontend always receives a plain object.
@@ -89,13 +90,6 @@ def get_runs(limit: int = 20) -> list:
 def clear_runs() -> dict:
 	"""Delete all Faker Run records owned by the current user."""
 	_require_system_manager()
-	names = frappe.get_all(
-		"Faker Run",
-		filters={"owner": frappe.session.user},
-		pluck="name",
-	)
-	for name in names:
-		frappe.delete_doc("Faker Run", name, ignore_permissions=True)
-	if names:
-		frappe.db.commit()
-	return {"deleted": len(names)}
+	count = frappe.db.count("Faker Run", {"owner": frappe.session.user})
+	frappe.db.delete("Faker Run", {"owner": frappe.session.user})
+	return {"deleted": count}

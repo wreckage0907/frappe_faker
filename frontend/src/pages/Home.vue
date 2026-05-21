@@ -118,18 +118,27 @@ const genHistory = useGenerationHistory();
 
 const userInitial = computed(() => (session.user || "?").charAt(0).toUpperCase());
 
-// Record completed runs to history
+// Lazy-load history only when the panel is opened
+watch(activePanel, (panel) => {
+	if (panel === "history") genHistory.reload();
+});
+
+// Record completed runs to history; failures are non-critical so swallow errors
 watch(
 	() => generation.phase.value,
 	async (phase) => {
 		if (phase === "done" && generation.result.value) {
-			await genHistory.addRun({
-				doctype: currentDoctype.value,
-				count: generation.result.value.count_requested ?? 0,
-				total_created: generation.result.value.total_created ?? 0,
-				total_failed: generation.result.value.total_failed ?? 0,
-				result: generation.result.value,
-			});
+			try {
+				await genHistory.addRun({
+					doctype: currentDoctype.value,
+					count: generation.result.value.count_requested ?? 0,
+					total_created: generation.result.value.total_created ?? 0,
+					total_failed: generation.result.value.total_failed ?? 0,
+					result: generation.result.value,
+				});
+			} catch {
+				// History write failure must not disrupt the generation result view
+			}
 		}
 	}
 );

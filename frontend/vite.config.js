@@ -14,7 +14,7 @@ export default defineConfig({
 			lucideIcons: true,
 			buildConfig: {
 				outDir: "../frappe_faker/public/frontend",
-				indexHtmlPath: "../frappe_faker/www/frontend.html",
+				indexHtmlPath: "../frappe_faker/www/faker.html",
 				emptyOutDir: true,
 				sourcemap: true,
 			},

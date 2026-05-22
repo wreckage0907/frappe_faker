@@ -5,21 +5,25 @@ app_description = "app that will generate fake data on frappe apps for testing"
 app_email = "girish.raghav2004@gmail.com"
 app_license = "mit"
 
+app_icon_url = "/assets/frappe_faker/frontend/favicon.png"
+app_icon_title = "Frappe Faker"
+app_icon_route = "/faker"
+
 # Apps
 # ------------------
 
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "frappe_faker",
-# 		"logo": "/assets/frappe_faker/logo.png",
-# 		"title": "Frappe Faker",
-# 		"route": "/frappe_faker",
-# 		"has_permission": "frappe_faker.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "frappe_faker",
+		"logo": "/assets/frappe_faker/frontend/favicon.png",
+		"title": "Frappe Faker",
+		"route": "/faker",
+		"has_permission": "frappe_faker.api.permission.has_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -253,6 +257,6 @@ require_type_annotated_api_methods = True
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
-website_route_rules = [{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"}]
+website_route_rules = [{"from_route": "/faker/<path:app_path>", "to_route": "faker"}]
 
 after_migrate = ["frappe_faker.utils.dependency_graph.after_migrate"]

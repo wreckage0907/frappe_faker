@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "copy-html-entry": "cp ../frappe_faker/public/frontend/index.html ../frappe_faker/www/frontend.html"
+    "copy-html-entry": "cp ../frappe_faker/public/frontend/index.html ../frappe_faker/www/faker.html"
   },
   "dependencies": {
     "feather-icons": "^4.29.2",

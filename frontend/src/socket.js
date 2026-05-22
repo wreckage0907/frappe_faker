@@ -5,8 +5,8 @@ let socket = null;
 export function initSocket() {
 	const host = window.location.hostname;
 	const siteName = window.site_name;
-	const port = window.location.port ? `:${socketio_port}` : "";
-	const protocol = port ? "http" : "https";
+	const port = socketio_port ? `:${socketio_port}` : "";
+	const protocol = port ? "http" : window.location.protocol.slice(0, -1);
 	const url = `${protocol}://${host}${port}/${siteName}`;
 
 	socket = io(url, {

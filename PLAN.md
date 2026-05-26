@@ -20,7 +20,8 @@ An AI-powered fake data generator that:
 | 2 — Dependency tree UI | DependencyTree component + GenerateForm wiring | ✅ Done |
 | 3 — CLI commands | `bench faker generate/plan/cleanup` | ⬜ Not started |
 | 3 — Faker Profile doctype | User-defined generation presets | ⬜ Not started |
-| 3 — Faker Batch doctype | Batch tracking + rollback support | ⬜ Not started |
+| 3 — Faker Batch doctype + Rollback | Batch tracking, rollback UI + CLI | ⬜ Not started |
+| 3 — Claude Code skill | Agent skill for data-driven testing | ⬜ Not started |
 
 ---
 
@@ -161,11 +162,11 @@ User-defined generation presets — shareable "seeds" for common setups.
 
 **Use case:** Save a profile from the UI after configuring a generation run; run a full profile in one click or via CLI (`bench faker profile run "Full HR Setup"`).
 
-### 3.3 — Faker Batch Doctype
+### 3.3 — Faker Batch Doctype + Rollback
 
-Batch tracking for every generation run — enables rollback / audit.
+Batch tracking for every generation run — enables full rollback from both the UI and CLI.
 
-**Fields:**
+**Doctype fields:**
 - `target_doctype` (Data) — primary doctype
 - `status` (Select: Running / Completed / Rolled Back)
 - `started_at`, `completed_at` (Datetime)
@@ -175,9 +176,81 @@ Batch tracking for every generation run — enables rollback / audit.
   - `record_name` (Data) — the `name` of the created record
   - `rolled_back` (Check)
 
-**Rollback flow:** `frappe.delete_doc(item.doctype_name, item.record_name, force=True)` for each non-rolled-back item; mark batch status = "Rolled Back".
+**Backend — `inserter.py` changes:**
+- `generate_and_insert()` creates a `Faker Batch` doc before starting, sets status = "Running"
+- As each record is inserted, appends a `Faker Batch Item` row immediately (not at the end — partial rollback is possible if the job crashes)
+- On completion sets status = "Completed"; job failure sets status = "Failed"
+- Returns `batch_name` in the result payload alongside existing `total_created` / `total_failed`
 
-**CLI:** `bench faker cleanup --batch <batch_name>` triggers rollback.
+**Backend — `api/generate.py` addition:**
+```python
+@frappe.whitelist()
+def rollback_batch(batch_name: str) -> dict[str, Any]:
+    _require_system_manager()
+    batch = frappe.get_doc("Faker Batch", batch_name)
+    if batch.status == "Rolled Back":
+        frappe.throw("Batch already rolled back")
+    deleted, errors = 0, []
+    for item in reversed(batch.items):   # reverse = dependency-safe delete order
+        if item.rolled_back:
+            continue
+        try:
+            frappe.delete_doc(item.doctype_name, item.record_name, force=True, ignore_missing=True)
+            item.rolled_back = 1
+            deleted += 1
+        except Exception as e:
+            errors.append({"doctype": item.doctype_name, "name": item.record_name, "error": str(e)})
+    batch.status = "Rolled Back" if not errors else "Partially Rolled Back"
+    batch.save()
+    return {"deleted": deleted, "errors": errors}
+```
+
+**Frontend — UI rollback flow:**
+- `ResultsSummary.vue`: add a "Rollback" ghost button next to "Generate Again" (only shown when `result.batch_name` exists and status != "Rolled Back")
+- Clicking shows a confirmation `Dialog`: "Delete N records across M doctypes?"
+- On confirm: calls `rollback_batch(batch_name)`, shows success toast or error summary
+- `GenerationHistory.vue`: each history row with a batch shows a "Rollback" action in the row-click Dialog
+- After rollback, the history row status badge updates to "Rolled Back" (red)
+
+**CLI:**
+```
+bench --site <site> faker cleanup --batch <batch_name>
+```
+
+**Key design note:** Records are appended to the batch item table as they are inserted (not buffered until the end). This means a crashed job can still be partially rolled back — only successfully inserted records are in the table.
+
+### 3.4 — Claude Code Skill
+
+A `.claude/skills/` skill file that teaches an AI agent how to use Frappe Faker from the CLI to generate contextually specific test data on demand.
+
+**Motivation:** When testing an API endpoint in another app and local data is missing, an agent can describe the requirement in natural language and Faker will generate correctly linked records. The `custom_instructions` field in the LLM prompt is the key hook — it accepts free-text constraints like "all employees in Chennai office, joined 2024, salary 50k–80k".
+
+**Skill file location:** `frappe_faker/.claude/skills/faker-data.md`
+
+**What the skill teaches an agent:**
+1. **Inspect first** — run `bench faker plan --doctype <DocType>` to see the dependency tree and understand which linked records will be auto-generated
+2. **Generate with requirements** — run `bench faker generate --doctype <DocType> --count <N> --instructions "<free-text requirement>"` where the instructions describe the specific data shape needed for the test
+3. **Verify** — check the CLI output for `total_created` / `total_failed`; if any failed, re-run with a reduced count or adjusted instructions
+4. **Clean up** — after testing, run `bench faker cleanup --batch <batch_name>` (printed by `generate`) to roll back all records; this leaves the DB clean for the next test run
+
+**Example agent workflow (encoded in the skill):**
+```
+# Testing the Payroll Entry API — need realistic Salary Structures + Employees
+bench --site demo.localhost faker plan --doctype "Salary Slip"
+# → shows: Salary Structure Assignment → Employee → Department (has data) → Company (has data)
+
+bench --site demo.localhost faker generate \
+  --doctype "Salary Slip" --count 3 \
+  --instructions "Employees are software engineers in Bangalore. Monthly salary 80k-120k INR. Use existing company."
+# → Batch: FAKER-BATCH-0001 | Created: Salary Slip ×3, Employee ×3, Salary Structure ×3
+
+# ... run API tests ...
+
+bench --site demo.localhost faker cleanup --batch FAKER-BATCH-0001
+# → Deleted 9 records
+```
+
+**Dependency on Phase 3.1:** The skill requires CLI commands to be implemented first. Once 3.1 is done, the skill file itself is a short markdown document — no additional Python code needed.
 
 ---
 

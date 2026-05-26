@@ -181,13 +181,12 @@ import { call, toast } from "frappe-ui";
 
 const props = defineProps({
 	result: { type: Object, required: true },
-	initialRolledBack: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["reset", "rollback"]);
 
 const expanded = ref({});
-const rolledBack = ref(props.initialRolledBack);
+const rolledBack = ref(props.result.batch_rolled_back === true);
 const rollbackLoading = ref(false);
 const showRollbackConfirm = ref(false);
 

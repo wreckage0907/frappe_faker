@@ -177,8 +177,10 @@ def rollback_batch(batch_name: str) -> dict[str, Any]:
 	_require_system_manager()
 
 	batch = frappe.get_doc("Faker Batch", batch_name)
+
+	# Idempotent — return current state immediately if already rolled back.
 	if batch.status in ("Rolled Back", "Partially Rolled Back"):
-		frappe.throw(f"Batch {batch_name} is already {batch.status}")
+		return {"deleted": 0, "errors": [], "status": batch.status, "already_rolled_back": True}
 
 	deleted = 0
 	errors: list[dict[str, Any]] = []
@@ -198,7 +200,7 @@ def rollback_batch(batch_name: str) -> dict[str, Any]:
 	batch.save()
 	frappe.db.commit()  # nosemgrep
 
-	return {"deleted": deleted, "errors": errors, "status": batch.status}
+	return {"deleted": deleted, "errors": errors, "status": batch.status, "already_rolled_back": False}
 
 
 # ---------------------------------------------------------------------------

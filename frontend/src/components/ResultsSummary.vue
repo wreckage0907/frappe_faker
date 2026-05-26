@@ -181,12 +181,13 @@ import { call, toast } from "frappe-ui";
 
 const props = defineProps({
 	result: { type: Object, required: true },
+	initialRolledBack: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["reset", "rollback"]);
 
 const expanded = ref({});
-const rolledBack = ref(false);
+const rolledBack = ref(props.initialRolledBack);
 const rollbackLoading = ref(false);
 const showRollbackConfirm = ref(false);
 
@@ -208,13 +209,22 @@ async function confirmRollback() {
 			batch_name: props.result.batch_name,
 		});
 		rolledBack.value = true;
-		toast({
-			title: "Batch rolled back",
-			text: `Deleted ${res.deleted} record(s).`,
-			icon: "trash-2",
-			iconClasses: "text-red-600",
-		});
-		emit("rollback", props.result.batch_name);
+		if (res.already_rolled_back) {
+			toast({
+				title: "Already rolled back",
+				text: "All records in this batch were already deleted.",
+				icon: "info",
+				iconClasses: "text-blue-500",
+			});
+		} else {
+			toast({
+				title: "Batch rolled back",
+				text: `Deleted ${res.deleted} record(s).`,
+				icon: "trash-2",
+				iconClasses: "text-red-600",
+			});
+			emit("rollback", props.result.batch_name);
+		}
 	} catch (e) {
 		toast({
 			title: "Rollback failed",

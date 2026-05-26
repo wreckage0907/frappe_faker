@@ -86,6 +86,7 @@
 					<ResultsSummary
 						v-if="selectedRun"
 						:result="selectedRun.result"
+						:initial-rolled-back="isRolledBack(selectedRun.result?.batch_name)"
 						@reset="showDetail = false"
 						@rollback="handleRollback"
 					/>
@@ -108,6 +109,13 @@ const emit = defineEmits(["clear", "reload"]);
 
 const showDetail = ref(false);
 const selectedRun = ref(null);
+// Tracks batch names rolled back in this session so the button stays hidden
+// if the user closes and reopens the same history dialog.
+const rolledBackBatches = ref(new Set());
+
+function isRolledBack(batchName) {
+	return batchName ? rolledBackBatches.value.has(batchName) : false;
+}
 
 function openDetail(run) {
 	const result = typeof run.result === "string" ? JSON.parse(run.result) : run.result;
@@ -115,7 +123,8 @@ function openDetail(run) {
 	showDetail.value = true;
 }
 
-function handleRollback() {
+function handleRollback(batchName) {
+	if (batchName) rolledBackBatches.value.add(batchName);
 	showDetail.value = false;
 	emit("reload");
 }

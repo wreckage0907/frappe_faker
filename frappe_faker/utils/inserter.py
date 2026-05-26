@@ -154,7 +154,7 @@ def generate_and_insert(
 		fast_insert: Use db_insert() path (much faster, skips Python hooks)
 
 	Returns:
-		Full result dict with per-doctype summaries.
+		Full result dict with per-doctype summaries including batch_name.
 	"""
 	from frappe_faker.utils.ai_generator import GenerationError, generate_records, get_settings
 	from frappe_faker.utils.dependency_graph import resolve_dependencies
@@ -184,6 +184,10 @@ def generate_and_insert(
 			tasks.append((dt, min(count, 5)))
 
 	tasks.append((doctype, count))
+
+	# Create a Faker Batch doc to track every record inserted in this run.
+	# Failures here are non-fatal — batch tracking is best-effort.
+	batch_doc = _create_batch(doctype)
 
 	# ------------------------------------------------------------------
 	# Build all generation contexts (serial — DB reads are fast)
@@ -275,10 +279,17 @@ def generate_and_insert(
 		result = _insert(records)
 		results.append(result)
 
+		# Append committed records to the batch immediately so a crashed job
+		# can still be partially rolled back.
+		_append_to_batch(batch_doc, dt, result.get("created", []))
+
+	_finalize_batch(batch_doc)
+
 	return {
 		"target": doctype,
 		"count_requested": count,
 		"fast_insert": fast_insert,
+		"batch_name": batch_doc.name if batch_doc else None,
 		"results": results,
 		"total_created": sum(r.get("created_count", 0) for r in results),
 		"total_failed": sum(r.get("failed_count", 0) for r in results),
@@ -508,3 +519,54 @@ def _safe_summary(record: dict[str, Any]) -> dict[str, Any]:
 		else:
 			summary[key] = value
 	return summary
+
+
+# ---------------------------------------------------------------------------
+# Batch tracking helpers
+# ---------------------------------------------------------------------------
+
+
+def _create_batch(doctype: str) -> Any | None:
+	"""Create a Faker Batch doc to track this generation run. Returns None on failure."""
+	try:
+		user = frappe.session.user if frappe.session else "Administrator"
+		doc = frappe.get_doc(
+			{
+				"doctype": "Faker Batch",
+				"target_doctype": doctype,
+				"status": "Running",
+				"started_at": frappe.utils.now(),
+				"created_by": user,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep
+		return doc
+	except Exception:
+		return None
+
+
+def _append_to_batch(batch_doc: Any, doctype_name: str, record_names: list[str]) -> None:
+	"""Append a doctype's newly inserted records to the batch and commit."""
+	if not batch_doc or not record_names:
+		return
+	try:
+		for name in record_names:
+			batch_doc.append("items", {"doctype_name": doctype_name, "record_name": name})
+		batch_doc.save()
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		pass
+
+
+def _finalize_batch(batch_doc: Any) -> None:
+	"""Mark the batch as Completed after all inserts finish."""
+	if not batch_doc:
+		return
+	try:
+		batch_doc.status = "Completed"
+		batch_doc.completed_at = frappe.utils.now()
+		batch_doc.save()
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		pass

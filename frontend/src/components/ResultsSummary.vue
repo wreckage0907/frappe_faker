@@ -134,20 +134,61 @@
 				</template>
 				Copy summary
 			</Button>
+			<Button
+				v-if="result.batch_name && totalCreated > 0 && !rolledBack"
+				variant="ghost"
+				theme="red"
+				:loading="rollbackLoading"
+				@click="showRollbackConfirm = true"
+			>
+				<template #prefix>
+					<FeatherIcon name="trash-2" class="w-4 h-4" />
+				</template>
+				Rollback
+			</Button>
+			<Badge v-if="rolledBack" label="Rolled back" theme="red" size="sm" variant="subtle" />
 		</div>
+
+		<!-- Rollback confirmation dialog -->
+		<Dialog v-model="showRollbackConfirm" :options="{ title: 'Rollback batch?', size: 'sm' }">
+			<template #body-content>
+				<p class="text-sm text-ink-gray-6 mb-4">
+					This will permanently delete all
+					<span class="font-medium text-ink-gray-9">{{ totalCreated }}</span> record(s)
+					created in this batch. This action cannot be undone.
+				</p>
+				<div class="flex gap-2 justify-end">
+					<Button variant="ghost" theme="gray" @click="showRollbackConfirm = false">
+						Cancel
+					</Button>
+					<Button
+						variant="solid"
+						theme="red"
+						:loading="rollbackLoading"
+						@click="confirmRollback"
+					>
+						Delete all records
+					</Button>
+				</div>
+			</template>
+		</Dialog>
 	</div>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
+import { call, toast } from "frappe-ui";
 
 const props = defineProps({
 	result: { type: Object, required: true },
 });
 
-const emit = defineEmits(["reset"]);
+const emit = defineEmits(["reset", "rollback"]);
 
 const expanded = ref({});
+const rolledBack = ref(false);
+const rollbackLoading = ref(false);
+const showRollbackConfirm = ref(false);
 
 const totalCreated = computed(() => props.result.total_created ?? 0);
 const totalFailed = computed(() => props.result.total_failed ?? 0);
@@ -156,6 +197,33 @@ function toggleExpanded(idx) {
 	const row = props.result.results[idx];
 	if (row.failed_count > 0 || row.error) {
 		expanded.value[idx] = !expanded.value[idx];
+	}
+}
+
+async function confirmRollback() {
+	showRollbackConfirm.value = false;
+	rollbackLoading.value = true;
+	try {
+		const res = await call("frappe_faker.api.generate.rollback_batch", {
+			batch_name: props.result.batch_name,
+		});
+		rolledBack.value = true;
+		toast({
+			title: "Batch rolled back",
+			text: `Deleted ${res.deleted} record(s).`,
+			icon: "trash-2",
+			iconClasses: "text-red-600",
+		});
+		emit("rollback", props.result.batch_name);
+	} catch (e) {
+		toast({
+			title: "Rollback failed",
+			text: e.messages?.[0] || e.message || "An error occurred during rollback.",
+			icon: "alert-circle",
+			iconClasses: "text-red-600",
+		});
+	} finally {
+		rollbackLoading.value = false;
 	}
 }
 

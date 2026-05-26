@@ -87,6 +87,7 @@
 						v-if="selectedRun"
 						:result="selectedRun.result"
 						@reset="showDetail = false"
+						@rollback="handleRollback"
 					/>
 				</div>
 			</template>
@@ -103,7 +104,7 @@ const props = defineProps({
 	loading: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["clear"]);
+const emit = defineEmits(["clear", "reload"]);
 
 const showDetail = ref(false);
 const selectedRun = ref(null);
@@ -112,6 +113,11 @@ function openDetail(run) {
 	const result = typeof run.result === "string" ? JSON.parse(run.result) : run.result;
 	selectedRun.value = { ...run, result };
 	showDetail.value = true;
+}
+
+function handleRollback() {
+	showDetail.value = false;
+	emit("reload");
 }
 
 function formatTime(frappe_creation) {

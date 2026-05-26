@@ -260,3 +260,5 @@ require_type_annotated_api_methods = True
 website_route_rules = [{"from_route": "/faker/<path:app_path>", "to_route": "faker"}]
 
 after_migrate = ["frappe_faker.utils.dependency_graph.after_migrate"]
+
+commands = ["frappe_faker.commands"]

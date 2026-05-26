@@ -162,6 +162,45 @@ def generate_sync(
 	)
 
 
+@frappe.whitelist()
+def rollback_batch(batch_name: str) -> dict[str, Any]:
+	"""
+	Delete all records created in a Faker Batch and mark it as rolled back.
+
+	Records are deleted in reverse insertion order (dependency-safe).
+	Already-rolled-back items are skipped. Partial failures are recorded
+	in the response rather than aborting the rollback.
+
+	Returns:
+		{"deleted": int, "errors": list, "status": str}
+	"""
+	_require_system_manager()
+
+	batch = frappe.get_doc("Faker Batch", batch_name)
+	if batch.status in ("Rolled Back", "Partially Rolled Back"):
+		frappe.throw(f"Batch {batch_name} is already {batch.status}")
+
+	deleted = 0
+	errors: list[dict[str, Any]] = []
+
+	for item in reversed(batch.items):
+		if item.rolled_back:
+			continue
+		try:
+			frappe.delete_doc(item.doctype_name, item.record_name, force=True, ignore_missing=True)
+			item.rolled_back = 1
+			deleted += 1
+		except Exception as e:
+			errors.append({"doctype": item.doctype_name, "name": item.record_name, "error": str(e)})
+
+	batch.status = "Rolled Back" if not errors else "Partially Rolled Back"
+	batch.completed_at = frappe.utils.now()
+	batch.save()
+	frappe.db.commit()  # nosemgrep
+
+	return {"deleted": deleted, "errors": errors, "status": batch.status}
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

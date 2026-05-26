@@ -154,7 +154,7 @@ def generate_and_insert(
 		fast_insert: Use db_insert() path (much faster, skips Python hooks)
 
 	Returns:
-		Full result dict with per-doctype summaries.
+		Full result dict with per-doctype summaries including batch_name.
 	"""
 	from frappe_faker.utils.ai_generator import GenerationError, generate_records, get_settings
 	from frappe_faker.utils.dependency_graph import resolve_dependencies
@@ -185,100 +185,126 @@ def generate_and_insert(
 
 	tasks.append((doctype, count))
 
-	# ------------------------------------------------------------------
-	# Build all generation contexts (serial — DB reads are fast)
-	# Shared cache avoids repeated frappe.get_all() for the same linked
-	# doctype across multiple get_generation_context() calls.
-	# ------------------------------------------------------------------
-	existing_cache: dict[str, list[str]] = {}
-	contexts: dict[str, dict[str, Any]] = {}
-	# Track context failures to avoid duplicate result entries (context error
-	# + generation "Context not available" error for the same doctype).
-	context_failed: set[str] = set()
+	# Create a Faker Batch doc to track every record inserted in this run.
+	# Failures here are non-fatal — batch tracking is best-effort.
+	batch_doc = _create_batch(doctype)
 
-	for dt, _cnt in tasks:
-		try:
-			contexts[dt] = get_generation_context(dt, existing_cache=existing_cache)
-		except Exception as e:
-			context_failed.add(dt)
-			results.append(
-				{
-					"doctype": dt,
-					"total": 0,
-					"created_count": 0,
-					"failed_count": 0,
-					"error": f"Context build failed: {e}",
-				}
-			)
+	try:
+		# ------------------------------------------------------------------
+		# Build all generation contexts (serial — DB reads are fast)
+		# Shared cache avoids repeated frappe.get_all() for the same linked
+		# doctype across multiple get_generation_context() calls.
+		# ------------------------------------------------------------------
+		existing_cache: dict[str, list[str]] = {}
+		contexts: dict[str, dict[str, Any]] = {}
+		# Track context failures to avoid duplicate result entries (context error
+		# + generation "Context not available" error for the same doctype).
+		context_failed: set[str] = set()
 
-	# ------------------------------------------------------------------
-	# Fire LLM API calls in parallel
-	# LLM calls are pure network I/O — no Frappe DB involved — so
-	# threading here is safe.
-	# ------------------------------------------------------------------
-	generated: dict[str, list[dict[str, Any]] | None] = {}
-	generation_errors: dict[str, str] = {}
+		for dt, _cnt in tasks:
+			try:
+				contexts[dt] = get_generation_context(dt, existing_cache=existing_cache)
+			except Exception as e:
+				context_failed.add(dt)
+				results.append(
+					{
+						"doctype": dt,
+						"total": 0,
+						"created_count": 0,
+						"failed_count": 0,
+						"error": f"Context build failed: {e}",
+					}
+				)
 
-	def _generate(dt: str, cnt: int) -> tuple[str, list[dict[str, Any]] | None, str | None]:
-		if dt not in contexts:
-			return dt, None, "Context not available"
-		try:
-			records = generate_records(contexts[dt], cnt, custom_instructions, settings=settings)
-			return dt, records, None
-		except (GenerationError, Exception) as exc:
-			return dt, None, str(exc)
+		# ------------------------------------------------------------------
+		# Fire LLM API calls in parallel
+		# LLM calls are pure network I/O — no Frappe DB involved — so
+		# threading here is safe.
+		# ------------------------------------------------------------------
+		generated: dict[str, list[dict[str, Any]] | None] = {}
+		generation_errors: dict[str, str] = {}
 
-	with ThreadPoolExecutor(max_workers=min(len(tasks), 8)) as executor:
-		futures = {
-			executor.submit(_generate, dt, cnt): (dt, cnt) for dt, cnt in tasks if dt not in context_failed
-		}
-		for future in as_completed(futures):
-			dt, records, error = future.result()
-			if error:
-				generation_errors[dt] = error
-			else:
-				generated[dt] = records
+		def _generate(dt: str, cnt: int) -> tuple[str, list[dict[str, Any]] | None, str | None]:
+			if dt not in contexts:
+				return dt, None, "Context not available"
+			try:
+				records = generate_records(contexts[dt], cnt, custom_instructions, settings=settings)
+				return dt, records, None
+			except (GenerationError, Exception) as exc:
+				return dt, None, str(exc)
 
-	# ------------------------------------------------------------------
-	# Insert in dependency order (serial — FK integrity)
-	# ------------------------------------------------------------------
-	_insert = insert_records_fast if fast_insert else insert_records
+		with ThreadPoolExecutor(max_workers=min(len(tasks), 8)) as executor:
+			futures = {
+				executor.submit(_generate, dt, cnt): (dt, cnt)
+				for dt, cnt in tasks
+				if dt not in context_failed
+			}
+			for future in as_completed(futures):
+				dt, records, error = future.result()
+				if error:
+					generation_errors[dt] = error
+				else:
+					generated[dt] = records
 
-	for dt, _cnt in tasks:
-		if dt in context_failed:
-			continue  # already recorded a result during context build
-		if dt in generation_errors:
-			results.append(
-				{
-					"doctype": dt,
-					"total": 0,
-					"created_count": 0,
-					"failed_count": 0,
-					"error": generation_errors[dt],
-				}
-			)
-			continue
+		# ------------------------------------------------------------------
+		# Insert in dependency order (serial — FK integrity)
+		# ------------------------------------------------------------------
+		_insert = insert_records_fast if fast_insert else insert_records
 
-		records = generated.get(dt)
-		if not records:
-			results.append(
-				{
-					"doctype": dt,
-					"total": 0,
-					"created_count": 0,
-					"failed_count": 0,
-					"error": "No records generated",
-				}
-			)
-			continue
+		for dt, _cnt in tasks:
+			if dt in context_failed:
+				continue  # already recorded a result during context build
+			if dt in generation_errors:
+				results.append(
+					{
+						"doctype": dt,
+						"total": 0,
+						"created_count": 0,
+						"failed_count": 0,
+						"error": generation_errors[dt],
+					}
+				)
+				continue
 
-		result = _insert(records)
-		results.append(result)
+			records = generated.get(dt)
+			if not records:
+				results.append(
+					{
+						"doctype": dt,
+						"total": 0,
+						"created_count": 0,
+						"failed_count": 0,
+						"error": "No records generated",
+					}
+				)
+				continue
+
+			result = _insert(records)
+			results.append(result)
+
+			# Append committed records to the batch immediately so a crashed job
+			# can still be partially rolled back.
+			_append_to_batch(batch_doc, dt, result.get("created", []))
+
+		_finalize_batch(batch_doc)
+
+	except Exception:
+		# Ensure the batch is never left in Running state on an unhandled error.
+		if batch_doc:
+			try:
+				batch_doc.status = "Failed"
+				batch_doc.completed_at = frappe.utils.now()
+				batch_doc.save()
+				frappe.db.commit()  # nosemgrep
+			except Exception:
+				pass
+		raise
 
 	return {
 		"target": doctype,
 		"count_requested": count,
 		"fast_insert": fast_insert,
+		"batch_name": batch_doc.name if batch_doc else None,
 		"results": results,
 		"total_created": sum(r.get("created_count", 0) for r in results),
 		"total_failed": sum(r.get("failed_count", 0) for r in results),
@@ -508,3 +534,54 @@ def _safe_summary(record: dict[str, Any]) -> dict[str, Any]:
 		else:
 			summary[key] = value
 	return summary
+
+
+# ---------------------------------------------------------------------------
+# Batch tracking helpers
+# ---------------------------------------------------------------------------
+
+
+def _create_batch(doctype: str) -> Any | None:
+	"""Create a Faker Batch doc to track this generation run. Returns None on failure."""
+	try:
+		user = frappe.session.user if frappe.session else "Administrator"
+		doc = frappe.get_doc(
+			{
+				"doctype": "Faker Batch",
+				"target_doctype": doctype,
+				"status": "Running",
+				"started_at": frappe.utils.now(),
+				"created_by": user,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep
+		return doc
+	except Exception:
+		return None
+
+
+def _append_to_batch(batch_doc: Any, doctype_name: str, record_names: list[str]) -> None:
+	"""Append a doctype's newly inserted records to the batch and commit."""
+	if not batch_doc or not record_names:
+		return
+	try:
+		for name in record_names:
+			batch_doc.append("items", {"doctype_name": doctype_name, "record_name": name})
+		batch_doc.save()
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		pass
+
+
+def _finalize_batch(batch_doc: Any) -> None:
+	"""Mark the batch as Completed after all inserts finish."""
+	if not batch_doc:
+		return
+	try:
+		batch_doc.status = "Completed"
+		batch_doc.completed_at = frappe.utils.now()
+		batch_doc.save()
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		pass

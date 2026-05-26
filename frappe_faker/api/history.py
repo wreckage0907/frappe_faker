@@ -83,6 +83,29 @@ def get_runs(limit: int = _MAX_RUNS) -> list:
 	for row in rows:
 		if isinstance(row.get("result"), str):
 			row["result"] = frappe.parse_json(row["result"])
+
+	# Enrich each result with the live batch rollback status so the UI can
+	# derive the correct initial state even after a hard refresh.
+	batch_names = [
+		row["result"].get("batch_name")
+		for row in rows
+		if row.get("result") and row["result"].get("batch_name")
+	]
+	if batch_names:
+		rolled_back_names = set(
+			frappe.get_all(
+				"Faker Batch",
+				filters={
+					"name": ["in", batch_names],
+					"status": ["in", ["Rolled Back", "Partially Rolled Back"]],
+				},
+				pluck="name",
+			)
+		)
+		for row in rows:
+			if row.get("result") and row["result"].get("batch_name"):
+				row["result"]["batch_rolled_back"] = row["result"]["batch_name"] in rolled_back_names
+
 	return rows
 
 

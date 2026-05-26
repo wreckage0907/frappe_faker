@@ -85,6 +85,7 @@
 						:history="genHistory.history.value"
 						:loading="genHistory.loading.value"
 						@clear="genHistory.clearAll()"
+						@reload="genHistory.reload()"
 					/>
 
 					<!-- Settings panel -->

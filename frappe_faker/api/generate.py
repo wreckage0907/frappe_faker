@@ -172,7 +172,7 @@ def rollback_batch(batch_name: str) -> dict[str, Any]:
 	in the response rather than aborting the rollback.
 
 	Returns:
-		{"deleted": int, "errors": list, "status": str}
+		{"deleted": int, "errors": list, "status": str, "already_rolled_back": bool}
 	"""
 	_require_system_manager()
 

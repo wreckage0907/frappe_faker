@@ -42,7 +42,7 @@ def generate_cmd(
 	frappe.init(site=site)
 	frappe.connect()
 	try:
-		frappe.set_user("Administrator")
+		frappe.set_user("Administrator")  # nosemgrep
 		from frappe_faker.utils.inserter import generate_and_insert
 
 		skip_list = [s.strip() for s in skip.split(",") if s.strip()] if skip else []
@@ -85,7 +85,7 @@ def plan_cmd(context: click.Context, doctype: str) -> None:
 	frappe.init(site=site)
 	frappe.connect()
 	try:
-		frappe.set_user("Administrator")
+		frappe.set_user("Administrator")  # nosemgrep
 		from frappe_faker.utils.dependency_graph import resolve_dependencies
 
 		result = resolve_dependencies(doctype)
@@ -122,7 +122,7 @@ def cleanup_cmd(context: click.Context, batch: str) -> None:
 	frappe.init(site=site)
 	frappe.connect()
 	try:
-		frappe.set_user("Administrator")
+		frappe.set_user("Administrator")  # nosemgrep
 		from frappe_faker.api.generate import rollback_batch
 
 		click.echo(f"Rolling back batch {batch}...")

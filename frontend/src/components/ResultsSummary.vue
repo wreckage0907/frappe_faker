@@ -186,7 +186,10 @@ const props = defineProps({
 const emit = defineEmits(["reset", "rollback"]);
 
 const expanded = ref({});
-const rolledBack = ref(props.result.batch_rolled_back === true);
+const rolledBackOverride = ref(false);
+const rolledBack = computed(
+	() => rolledBackOverride.value || props.result.batch_rolled_back === true
+);
 const rollbackLoading = ref(false);
 const showRollbackConfirm = ref(false);
 
@@ -207,7 +210,7 @@ async function confirmRollback() {
 		const res = await call("frappe_faker.api.generate.rollback_batch", {
 			batch_name: props.result.batch_name,
 		});
-		rolledBack.value = true;
+		rolledBackOverride.value = true;
 		if (res.already_rolled_back) {
 			toast({
 				title: "Already rolled back",

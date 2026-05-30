@@ -165,52 +165,42 @@ def generate_sync(
 @frappe.whitelist()
 def rollback_batch(batch_name: str) -> dict[str, Any]:
 	"""
-	Delete every record a generation batch created, undoing the run.
+	Delete all records created in a Faker Batch and mark it as rolled back.
 
-	Items are deleted in reverse insertion order so dependent records are
-	removed before the records they link to. Already-rolled-back items are
-	skipped and missing records are ignored, so this is safe to call twice.
+	Records are deleted in reverse insertion order (dependency-safe).
+	Already-rolled-back items are skipped. Partial failures are recorded
+	in the response rather than aborting the rollback.
 
 	Returns:
-		{"batch_name", "status", "deleted", "errors": [{doctype, name, error}]}
+		{"deleted": int, "errors": list, "status": str, "already_rolled_back": bool}
 	"""
 	_require_system_manager()
 
 	batch = frappe.get_doc("Faker Batch", batch_name)
-	if batch.status == "Rolled Back":
-		return {"batch_name": batch_name, "status": batch.status, "deleted": 0, "errors": []}
+
+	# Idempotent — return current state immediately if already rolled back.
+	if batch.status in ("Rolled Back", "Partially Rolled Back"):
+		return {"deleted": 0, "errors": [], "status": batch.status, "already_rolled_back": True}
 
 	deleted = 0
 	errors: list[dict[str, Any]] = []
 
-	# reversed = dependency-safe delete order (target first, base deps last)
 	for item in reversed(batch.items):
 		if item.rolled_back:
 			continue
 		try:
-			frappe.delete_doc(
-				item.doctype_name,
-				item.record_name,
-				force=True,
-				ignore_permissions=True,
-				ignore_missing=True,
-			)
+			frappe.delete_doc(item.doctype_name, item.record_name, force=True, ignore_missing=True)
 			item.rolled_back = 1
 			deleted += 1
 		except Exception as e:
 			errors.append({"doctype": item.doctype_name, "name": item.record_name, "error": str(e)})
 
-	remaining = sum(1 for item in batch.items if not item.rolled_back)
-	batch.status = "Rolled Back" if remaining == 0 else "Partially Rolled Back"
-	batch.save(ignore_permissions=True)
+	batch.status = "Rolled Back" if not errors else "Partially Rolled Back"
+	batch.completed_at = frappe.utils.now()
+	batch.save()
 	frappe.db.commit()  # nosemgrep
 
-	return {
-		"batch_name": batch_name,
-		"status": batch.status,
-		"deleted": deleted,
-		"errors": errors,
-	}
+	return {"deleted": deleted, "errors": errors, "status": batch.status, "already_rolled_back": False}
 
 
 # ---------------------------------------------------------------------------

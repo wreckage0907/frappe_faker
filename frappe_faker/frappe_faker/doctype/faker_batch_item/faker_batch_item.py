@@ -1,7 +1,6 @@
 # Copyright (c) 2026, wreckage0907 and contributors
 # For license information, please see license.txt
 
-# import frappe
 from frappe.model.document import Document
 
 
@@ -15,9 +14,6 @@ class FakerBatchItem(Document):
 		from frappe.types import DF
 
 		doctype_name: DF.Data | None
-		parent: DF.Data
-		parentfield: DF.Data
-		parenttype: DF.Data
 		record_name: DF.Data | None
 		rolled_back: DF.Check
 	# end: auto-generated types

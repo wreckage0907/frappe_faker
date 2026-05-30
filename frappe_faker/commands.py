@@ -1,117 +1,140 @@
 """
-Bench CLI commands for Frappe Faker.
+Frappe Faker CLI — bench commands for generating and managing fake data.
 
-Exposed as `bench --site <site> faker <subcommand>`:
-
-  faker plan      — print the dependency generation order for a DocType
-  faker generate  — generate fake records for a DocType (inline)
-  faker cleanup   — roll back (delete) all records created by a batch
-
-Discovered by bench via the module-level `commands` list at the bottom.
+Usage:
+    bench --site <site> faker generate --doctype "Timesheet" --count 5
+    bench --site <site> faker plan --doctype "Timesheet"
+    bench --site <site> faker cleanup --batch FAKER-BATCH-XXXX
 """
 
+from __future__ import annotations
+
 import click
-import frappe
-from frappe.commands import get_site, pass_context
+from frappe.commands import pass_context
 
 
 @click.group()
-def faker():
-	"""Generate and manage fake test data with Frappe Faker."""
-	pass
-
-
-@faker.command("plan")
-@click.option("--doctype", required=True, help="Target DocType to plan generation for")
-@click.option("--skip", default="", help="Comma-separated doctypes to skip")
-@pass_context
-def plan(context, doctype, skip):
-	"""Print the dependency generation order for a DocType (no data is created)."""
-	site = get_site(context)
-	frappe.init(site=site)
-	frappe.connect()
-	try:
-		from frappe_faker.utils.dependency_graph import print_dependency_tree
-
-		skip_set = {s.strip() for s in skip.split(",") if s.strip()}
-		click.echo(print_dependency_tree(doctype, skip=skip_set))
-	finally:
-		frappe.destroy()
+def faker() -> None:
+	"""Frappe Faker — generate fake data for Frappe doctypes."""
 
 
 @faker.command("generate")
-@click.option("--doctype", required=True, help="Target DocType to generate records for")
-@click.option("--count", type=int, default=None, help="Number of records (defaults to Faker Settings)")
-@click.option("--skip", default="", help="Comma-separated doctypes to skip")
-@click.option("--instructions", default=None, help="Free-text instructions passed to the LLM")
-@click.option("--no-deps", is_flag=True, default=False, help="Do not auto-generate linked dependencies")
+@click.option("--doctype", "-d", required=True, help="Target DocType to generate records for")
+@click.option("--count", "-n", default=None, type=int, help="Number of records (default from Faker Settings)")
+@click.option("--skip", default=None, help="Comma-separated DocTypes to skip during dependency resolution")
 @click.option(
-	"--standard-insert",
-	is_flag=True,
-	default=False,
-	help="Use the standard insert path (runs Python hooks) instead of fast db_insert",
+	"--fast-insert/--no-fast-insert", default=True, help="Use fast db_insert path (bypasses Python hooks)"
 )
+@click.option("--instructions", default=None, help="Custom free-text instructions for the LLM")
 @pass_context
-def generate(context, doctype, count, skip, instructions, no_deps, standard_insert):
-	"""Generate fake records for a DocType. Prints the batch name for later cleanup."""
-	site = get_site(context)
+def generate_cmd(
+	context: click.Context,
+	doctype: str,
+	count: int | None,
+	skip: str | None,
+	fast_insert: bool,
+	instructions: str | None,
+) -> None:
+	"""Generate fake records for a DocType."""
+	import frappe
+
+	site = context.sites[0]
 	frappe.init(site=site)
 	frappe.connect()
-	frappe.set_user("Administrator")
 	try:
+		frappe.set_user("Administrator")  # nosemgrep
 		from frappe_faker.utils.inserter import generate_and_insert
 
-		skip_list = [s.strip() for s in skip.split(",") if s.strip()]
+		skip_list = [s.strip() for s in skip.split(",") if s.strip()] if skip else []
+		count_label = str(count) if count is not None else "default"
+		click.echo(f"Generating {count_label} record(s) for {doctype}...")
+
 		result = generate_and_insert(
 			doctype=doctype,
 			count=count,
 			skip=skip_list,
+			fast_insert=fast_insert,
 			custom_instructions=instructions,
-			resolve_deps=not no_deps,
-			fast_insert=not standard_insert,
 		)
-		_print_result(result)
+
+		batch = result.get("batch_name") or "N/A"
+		click.echo(
+			f"\nBatch: {batch} | Created: {result['total_created']} | Failed: {result['total_failed']}"
+		)
+		for r in result.get("results", []):
+			status = f"{r['created_count']} created"
+			if r.get("failed_count"):
+				status += f", {r['failed_count']} failed"
+			if r.get("error"):
+				status += f" — {r['error']}"
+			click.echo(f"  {r['doctype']}: {status}")
+
+		frappe.db.commit()  # nosemgrep
+	finally:
+		frappe.destroy()
+
+
+@faker.command("plan")
+@click.option("--doctype", "-d", required=True, help="Target DocType to inspect")
+@pass_context
+def plan_cmd(context: click.Context, doctype: str) -> None:
+	"""Show the dependency tree for a DocType without generating anything."""
+	import frappe
+
+	site = context.sites[0]
+	frappe.init(site=site)
+	frappe.connect()
+	try:
+		frappe.set_user("Administrator")  # nosemgrep
+		from frappe_faker.utils.dependency_graph import resolve_dependencies
+
+		result = resolve_dependencies(doctype)
+		click.echo(f"\nDependency plan for: {doctype}\n")
+
+		for item in result["order"]:
+			indent = "  " * item["depth"]
+			badges = []
+			if item["depth"] == 0:
+				badges.append("[Target]")
+			if item.get("has_existing_data"):
+				badges.append("[Has data — will skip]")
+			if item.get("is_cyclic"):
+				badges.append("[Cyclic]")
+			badge_str = ("  " + " ".join(badges)) if badges else ""
+			click.echo(f"{indent}{item['doctype']}{badge_str}")
+
+		if result.get("truncated"):
+			click.echo("\n  [!] Tree truncated at max depth (5). Some dependencies may not be shown.")
+		if result.get("cycles"):
+			click.echo(f"\n  [!] Cyclic dependencies: {', '.join(result['cycles'])}")
 	finally:
 		frappe.destroy()
 
 
 @faker.command("cleanup")
-@click.option("--batch", "batch_name", required=True, help="Faker Batch name to roll back")
+@click.option("--batch", "-b", required=True, help="Batch name to rollback (e.g. abc123xyz)")
 @pass_context
-def cleanup(context, batch_name):
-	"""Roll back a batch: delete every record it created, in dependency-safe order."""
-	site = get_site(context)
+def cleanup_cmd(context: click.Context, batch: str) -> None:
+	"""Rollback all records created in a batch."""
+	import frappe
+
+	site = context.sites[0]
 	frappe.init(site=site)
 	frappe.connect()
-	frappe.set_user("Administrator")
 	try:
+		frappe.set_user("Administrator")  # nosemgrep
 		from frappe_faker.api.generate import rollback_batch
 
-		if not frappe.db.exists("Faker Batch", batch_name):
-			raise click.ClickException(f"Faker Batch '{batch_name}' not found")
+		click.echo(f"Rolling back batch {batch}...")
+		result = rollback_batch(batch_name=batch)
+		click.echo(f"Deleted {result['deleted']} record(s). Status: {result['status']}")
 
-		resp = rollback_batch(batch_name)
-		click.echo(f"Batch {resp['batch_name']}: {resp['status']} — deleted {resp['deleted']} records")
-		for e in resp.get("errors", []):
-			click.echo(f"  ! {e['doctype']} {e['name']}: {e['error']}")
+		if result.get("errors"):
+			click.echo(f"  {len(result['errors'])} error(s):", err=True)
+			for err in result["errors"]:
+				click.echo(f"    {err['doctype']} {err['name']}: {err['error']}", err=True)
 	finally:
 		frappe.destroy()
-
-
-def _print_result(result):
-	"""Render a generate_and_insert result dict for the terminal."""
-	click.echo("")
-	click.echo(f"Batch:   {result.get('batch_name')}")
-	click.echo(f"Target:  {result['target']}  (requested {result['count_requested']})")
-	click.echo(f"Created: {result['total_created']}   Failed: {result['total_failed']}")
-	for r in result["results"]:
-		line = f"  - {r['doctype']}: {r.get('created_count', 0)} created, {r.get('failed_count', 0)} failed"
-		if r.get("error"):
-			line += f"  ({r['error']})"
-		click.echo(line)
-	if result.get("batch_name") and result.get("total_created"):
-		click.echo("")
-		click.echo(f"Roll back with:  bench --site <site> faker cleanup --batch {result['batch_name']}")
 
 
 commands = [faker]

@@ -69,13 +69,6 @@
 						size="sm"
 						variant="subtle"
 					/>
-					<Badge
-						v-if="isRolledBack(run)"
-						label="Rolled back"
-						theme="gray"
-						size="sm"
-						variant="subtle"
-					/>
 					<span class="w-16 text-right text-xs text-ink-gray-4">
 						{{ formatTime(run.creation) }}
 					</span>
@@ -94,7 +87,7 @@
 						v-if="selectedRun"
 						:result="selectedRun.result"
 						@reset="showDetail = false"
-						@rolledback="onRolledBack"
+						@rollback="handleRollback"
 					/>
 				</div>
 			</template>
@@ -111,35 +104,20 @@ const props = defineProps({
 	loading: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["clear"]);
+const emit = defineEmits(["clear", "reload"]);
 
 const showDetail = ref(false);
 const selectedRun = ref(null);
-const rolledBackBatches = ref(new Set());
-
-function parseResult(run) {
-	if (typeof run.result !== "string") return run.result || null;
-	try {
-		return JSON.parse(run.result);
-	} catch {
-		return null;
-	}
-}
 
 function openDetail(run) {
-	selectedRun.value = { ...run, result: parseResult(run) };
+	const result = typeof run.result === "string" ? JSON.parse(run.result) : run.result;
+	selectedRun.value = { ...run, result };
 	showDetail.value = true;
 }
 
-function isRolledBack(run) {
-	const batchName = parseResult(run)?.batch_name;
-	return batchName ? rolledBackBatches.value.has(batchName) : false;
-}
-
-function onRolledBack({ batchName }) {
-	if (batchName) {
-		rolledBackBatches.value = new Set([...rolledBackBatches.value, batchName]);
-	}
+function handleRollback() {
+	showDetail.value = false;
+	emit("reload");
 }
 
 function formatTime(frappe_creation) {

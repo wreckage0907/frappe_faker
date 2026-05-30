@@ -18,10 +18,10 @@ An AI-powered fake data generator that:
 | 2 — API layer | `generate.py`, `history.py` whitelisted endpoints | ✅ Done |
 | 2 — Frontend MVP | Login, Generate form, Job progress, Results, History, Settings | ✅ Done |
 | 2 — Dependency tree UI | DependencyTree component + GenerateForm wiring | ✅ Done |
-| 3 — CLI commands | `bench faker plan/generate/cleanup` | ✅ Done |
+| 3 — Faker Batch doctype + Rollback | Batch tracking, rollback UI + CLI | ✅ Done |
+| 3 — CLI commands | `bench faker generate/plan/cleanup` | ✅ Done |
+| 3 — Claude Code skill | Agent skill for data-driven testing | ✅ Done |
 | 3 — Faker Profile doctype | User-defined generation presets | ⬜ Not started |
-| 3 — Faker Batch doctype + Rollback | Batch tracking + rollback (UI + API + CLI) | ✅ Done |
-| 3 — Claude Code skill | Agent skill for data-driven testing (`.claude/skills/frappe-faker`) | ✅ Done |
 
 ---
 

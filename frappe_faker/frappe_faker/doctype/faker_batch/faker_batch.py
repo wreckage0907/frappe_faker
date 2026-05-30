@@ -1,7 +1,6 @@
 # Copyright (c) 2026, wreckage0907 and contributors
 # For license information, please see license.txt
 
-# import frappe
 from frappe.model.document import Document
 
 
@@ -17,13 +16,11 @@ class FakerBatch(Document):
 		from frappe_faker.frappe_faker.doctype.faker_batch_item.faker_batch_item import FakerBatchItem
 
 		completed_at: DF.Datetime | None
+		created_by: DF.Link | None
 		items: DF.Table[FakerBatchItem]
 		started_at: DF.Datetime | None
-		status: DF.Literal[
-			"Running", "Completed", "Partial", "Failed", "Rolled Back", "Partially Rolled Back"
-		]
+		status: DF.Literal["Running", "Completed", "Failed", "Rolled Back", "Partially Rolled Back"]
 		target_doctype: DF.Data | None
-		total_records: DF.Int
 	# end: auto-generated types
 
 	pass

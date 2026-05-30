@@ -8,7 +8,9 @@ links to, generates believable records with an AI provider of your choice, and
 inserts them in dependency order so all the foreign keys line up. Every run is
 tracked as a batch you can roll back.
 
-<!-- TODO: add a screenshot or GIF of the generate -> results -> rollback flow at docs/images/generate.png -->
+<p align="center">
+  <img src="docs/images/generate.png" alt="Frappe Faker — picking a DocType and previewing its dependency tree before generating" width="900">
+</p>
 
 ## Why
 

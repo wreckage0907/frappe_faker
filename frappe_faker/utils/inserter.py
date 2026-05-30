@@ -154,7 +154,8 @@ def generate_and_insert(
 		fast_insert: Use db_insert() path (much faster, skips Python hooks)
 
 	Returns:
-		Full result dict with per-doctype summaries.
+		Full result dict with per-doctype summaries and a `batch_name` that can
+		be passed to rollback_batch() to undo every record this run created.
 	"""
 	from frappe_faker.utils.ai_generator import GenerationError, generate_records, get_settings
 	from frappe_faker.utils.dependency_graph import resolve_dependencies
@@ -241,8 +242,11 @@ def generate_and_insert(
 
 	# ------------------------------------------------------------------
 	# Insert in dependency order (serial — FK integrity)
+	# Every inserted record is logged to a Faker Batch as it lands, so a
+	# crashed job can still be rolled back for whatever made it in.
 	# ------------------------------------------------------------------
 	_insert = insert_records_fast if fast_insert else insert_records
+	batch = _new_batch(doctype)
 
 	for dt, _cnt in tasks:
 		if dt in context_failed:
@@ -274,15 +278,90 @@ def generate_and_insert(
 
 		result = _insert(records)
 		results.append(result)
+		_append_batch_items(batch, result)
+
+	total_created = sum(r.get("created_count", 0) for r in results)
+	total_failed = sum(r.get("failed_count", 0) for r in results)
+	_finalize_batch(batch, total_created, total_failed)
 
 	return {
 		"target": doctype,
 		"count_requested": count,
 		"fast_insert": fast_insert,
+		"batch_name": batch.name if batch else None,
 		"results": results,
-		"total_created": sum(r.get("created_count", 0) for r in results),
-		"total_failed": sum(r.get("failed_count", 0) for r in results),
+		"total_created": total_created,
+		"total_failed": total_failed,
 	}
+
+
+# ---------------------------------------------------------------------------
+# Batch tracking — records every inserted doc so a run can be rolled back
+#
+# All batch bookkeeping is best-effort: a failure here must never abort an
+# in-progress generation, so every helper swallows and logs its own errors.
+# ---------------------------------------------------------------------------
+
+
+def _new_batch(target_doctype: str):
+	"""Create a Faker Batch in the Running state. Returns the doc, or None on failure."""
+	try:
+		from frappe.utils import now
+
+		doc = frappe.get_doc(
+			{
+				"doctype": "Faker Batch",
+				"target_doctype": target_doctype,
+				"status": "Running",
+				"started_at": now(),
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep
+		return doc
+	except Exception:
+		frappe.log_error("frappe_faker: failed to create Faker Batch")
+		return None
+
+
+def _append_batch_items(batch, result: dict[str, Any]) -> None:
+	"""Append one Faker Batch Item per created record and persist immediately."""
+	if not batch:
+		return
+	created = result.get("created") or []
+	dt = result.get("doctype")
+	if not created or not dt:
+		return
+	try:
+		for name in created:
+			batch.append("items", {"doctype_name": dt, "record_name": str(name)})
+		batch.save(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		frappe.log_error("frappe_faker: failed to append Faker Batch items")
+
+
+def _finalize_batch(batch, total_created: int, total_failed: int) -> None:
+	"""Stamp the batch with its final status, record count, and completion time."""
+	if not batch:
+		return
+	try:
+		from frappe.utils import now
+
+		if total_created == 0:
+			status = "Failed"
+		elif total_failed > 0:
+			status = "Partial"
+		else:
+			status = "Completed"
+
+		batch.status = status
+		batch.completed_at = now()
+		batch.total_records = total_created
+		batch.save(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep
+	except Exception:
+		frappe.log_error("frappe_faker: failed to finalize Faker Batch")
 
 
 # ---------------------------------------------------------------------------
@@ -436,6 +515,18 @@ def _clear_broken_links(doc, valid_link_values: dict[str, set[str]]) -> None:
 			exists = bool(frappe.db.exists(link_dt, value))
 
 		if not exists and not df.reqd:
+			doc.set(df.fieldname, None)
+
+	# Dynamic Link fields: the target doctype lives in a sibling field whose
+	# name is df.options (e.g. reference_type holds the doctype for
+	# reference_name). These aren't covered by the batched Link check, and an
+	# LLM-invented reference will otherwise fail validation on the standard path.
+	for df in meta.get("fields", {"fieldtype": "Dynamic Link"}):
+		value = doc.get(df.fieldname)
+		if not value or df.reqd:
+			continue
+		target_doctype = doc.get(df.options)
+		if not target_doctype or not frappe.db.exists(target_doctype, value):
 			doc.set(df.fieldname, None)
 
 

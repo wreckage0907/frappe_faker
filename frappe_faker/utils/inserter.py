@@ -464,6 +464,18 @@ def _clear_broken_links(doc, valid_link_values: dict[str, set[str]]) -> None:
 		if not exists and not df.reqd:
 			doc.set(df.fieldname, None)
 
+	# Dynamic Link fields: the target doctype lives in a sibling field whose
+	# name is df.options (e.g. reference_type holds the doctype for
+	# reference_name). These aren't covered by the batched Link check, and an
+	# LLM-invented reference will otherwise fail validation on the standard path.
+	for df in meta.get("fields", {"fieldtype": "Dynamic Link"}):
+		value = doc.get(df.fieldname)
+		if not value or df.reqd:
+			continue
+		target_doctype = doc.get(df.options)
+		if not target_doctype or not frappe.db.exists(target_doctype, value):
+			doc.set(df.fieldname, None)
+
 
 # ---------------------------------------------------------------------------
 # Utilities

@@ -3,7 +3,7 @@ name = "frappe_faker"
 authors = [
     { name = "wreckage0907", email = "girish.raghav2004@gmail.com"}
 ]
-description = "app that will generate fake data on frappe apps for testing"
+description = "Generate realistic, correctly-linked test data for any Frappe/ERPNext DocType using an LLM"
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]

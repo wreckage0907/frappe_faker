@@ -1,7 +1,7 @@
 app_name = "frappe_faker"
 app_title = "Frappe Faker"
 app_publisher = "wreckage0907"
-app_description = "app that will generate fake data on frappe apps for testing"
+app_description = "Generate realistic, correctly-linked test data for any Frappe/ERPNext DocType using an LLM"
 app_email = "girish.raghav2004@gmail.com"
 app_license = "mit"
 

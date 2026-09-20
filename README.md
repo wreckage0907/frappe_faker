@@ -69,24 +69,31 @@
 
 # 📱 Preview
 
+<p align="center">
+  <img src="docs/images/generate.png" width="92%" alt="Generate panel with the Sales Order dependency tree expanded">
+</p>
+
+<p align="center">
+  <samp>
+    <b>Generate</b> — pick a DocType and see what it drags in.<br>
+    Tick any dependency to skip it and reuse the records already on the site.
+  </samp>
+</p>
+
+<br>
+
 <table>
   <tr>
-    <td width="33%"><img src="docs/images/generate.png" alt="Generate panel with the Sales Order dependency tree expanded"></td>
-    <td width="33%"><img src="docs/images/results.png" alt="Results summary showing five Customer records created"></td>
-    <td width="33%"><img src="docs/images/history.png" alt="History panel listing the last twenty generation runs"></td>
+    <td width="50%"><img src="docs/images/results.png" alt="Results summary showing five Customer records created"></td>
+    <td width="50%"><img src="docs/images/history.png" alt="History panel listing the last twenty generation runs"></td>
   </tr>
   <tr>
-    <td width="33%" align="center" valign="top"><samp>
-      <b>Generate</b>
-      <br><br>
-      Pick a DocType and see what it drags in. Tick any dependency to skip it and reuse the records already on the site.
-    </samp></td>
-    <td width="33%" align="center" valign="top"><samp>
+    <td width="50%" align="center" valign="top"><samp>
       <b>Results</b>
       <br><br>
       A per-DocType breakdown of what was created, with the batch one button away from being deleted again.
     </samp></td>
-    <td width="33%" align="center" valign="top"><samp>
+    <td width="50%" align="center" valign="top"><samp>
       <b>History</b>
       <br><br>
       The last twenty runs, each with its counts and the full result payload behind it.

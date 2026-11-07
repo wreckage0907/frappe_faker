@@ -357,6 +357,18 @@ is a site with the app installed and a provider configured.
 
 <br>
 
+# 🗺️ Roadmap
+
+<samp>
+
+- **Faker Profiles** — saved, shareable generation presets (several DocTypes, counts and
+  instructions run as one). Not in v1.0; the design is in [`docs/PLAN.md`](docs/PLAN.md#future-work-not-in-v10).
+  Until then, script repeated setups with `bench faker generate`.
+
+</samp>
+
+<br>
+
 <hr>
 
 <p align="center">

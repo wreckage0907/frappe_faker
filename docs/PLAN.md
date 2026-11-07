@@ -21,7 +21,7 @@ An AI-powered fake data generator that:
 | 3 — Faker Batch doctype + Rollback | Batch tracking, rollback UI + CLI | ✅ Done |
 | 3 — CLI commands | `bench faker generate/plan/cleanup` | ✅ Done |
 | 3 — Claude Code skill | Agent skill for data-driven testing | ✅ Done |
-| 3 — Faker Profile doctype | User-defined generation presets | ⬜ Not started |
+| Future — Faker Profile doctype | User-defined generation presets | 🗺️ Roadmap, not part of v1.0 ([Future work](#future-work-not-in-v10)) |
 
 ---
 
@@ -98,9 +98,9 @@ An AI-powered fake data generator that:
 
 ---
 
-## Phase 3: Remaining Work
+## Phase 3: CLI, Rollback & Agent Skill (Complete)
 
-### 3.1 — CLI Commands (`frappe_faker/commands.py`)
+### 3.1 — CLI Commands (`frappe_faker/commands.py`) ✅
 
 Extend `bench` with a `faker` command group. Register via `hooks.py` `commands` list.
 
@@ -115,7 +115,7 @@ Implementation notes:
 - Use `click` (already a Frappe dep) for the command group
 - `generate` command calls `generate_and_insert()` directly (no RQ — runs synchronously in terminal)
 - `plan` command calls `print_dependency_tree()` from `dependency_graph.py` (already implemented)
-- `cleanup` requires `Faker Batch` doctype (Phase 3.3)
+- `cleanup` requires `Faker Batch` doctype (Phase 3.2)
 - Register in `hooks.py`: `commands = ["frappe_faker.commands"]`
 
 ```python
@@ -147,22 +147,7 @@ def plan_cmd(context, doctype):
 commands = [faker]
 ```
 
-### 3.2 — Faker Profile Doctype
-
-User-defined generation presets — shareable "seeds" for common setups.
-
-**Fields:**
-- `profile_name` (Data, reqd, unique) — e.g. "Full HR Setup"
-- `description` (Small Text)
-- `items` (Table → `Faker Profile Item`)
-  - `doctype_name` (Link → DocType, reqd)
-  - `count` (Int, default 5)
-  - `skip` (Small Text) — comma-separated doctypes to skip
-  - `custom_instructions` (Text)
-
-**Use case:** Save a profile from the UI after configuring a generation run; run a full profile in one click or via CLI (`bench faker profile run "Full HR Setup"`).
-
-### 3.3 — Faker Batch Doctype + Rollback
+### 3.2 — Faker Batch Doctype + Rollback ✅
 
 Batch tracking for every generation run — enables full rollback from both the UI and CLI.
 
@@ -219,7 +204,7 @@ bench --site <site> faker cleanup --batch <batch_name>
 
 **Key design note:** Records are appended to the batch item table as they are inserted (not buffered until the end). This means a crashed job can still be partially rolled back — only successfully inserted records are in the table.
 
-### 3.4 — Claude Code Skill
+### 3.3 — Claude Code Skill ✅
 
 A `.claude/skills/` skill file that teaches an AI agent how to use Frappe Faker from the CLI to generate contextually specific test data on demand.
 
@@ -251,6 +236,28 @@ bench --site demo.localhost faker cleanup --batch FAKER-BATCH-0001
 ```
 
 **Dependency on Phase 3.1:** The skill requires CLI commands to be implemented first. Once 3.1 is done, the skill file itself is a short markdown document — no additional Python code needed.
+
+---
+
+## Future work (not in v1.0)
+
+### Faker Profile Doctype
+
+Descoped from v1.0: nothing below is implemented. It is kept here as the design for a
+future release; until then, repeat a setup with `bench faker generate` in a script.
+
+User-defined generation presets — shareable "seeds" for common setups.
+
+**Fields:**
+- `profile_name` (Data, reqd, unique) — e.g. "Full HR Setup"
+- `description` (Small Text)
+- `items` (Table → `Faker Profile Item`)
+  - `doctype_name` (Link → DocType, reqd)
+  - `count` (Int, default 5)
+  - `skip` (Small Text) — comma-separated doctypes to skip
+  - `custom_instructions` (Text)
+
+**Use case:** Save a profile from the UI after configuring a generation run; run a full profile in one click or via CLI (`bench faker profile run "Full HR Setup"`).
 
 ---
 

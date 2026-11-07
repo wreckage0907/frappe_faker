@@ -113,8 +113,8 @@
 
 **📝 Prerequisites**
 
-1. A **Frappe Bench** with a site on **v16+**
-2. **Python 3.14**
+1. A **Frappe Bench** with a site on **v16**
+2. **Python 3.14** (Frappe v16 itself requires it)
 3. An API key for **OpenAI**, **Anthropic** or **Gemini** — or a local **Ollama**
 
 <br>

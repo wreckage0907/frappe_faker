@@ -362,5 +362,10 @@ is a site with the app installed and a provider configured.
 <p align="center">
   <samp>
     MIT &middot; built with <a href="https://frappeframework.com">Frappe</a> and <a href="https://ui.frappe.io">Frappe UI</a>
+    <br>
+    <a href="https://wreckage0907.github.io/frappe_faker/">Website</a> &middot;
+    <a href="https://wreckage0907.github.io/frappe_faker/privacy.html">Privacy</a> &middot;
+    <a href="https://wreckage0907.github.io/frappe_faker/terms.html">Terms</a> &middot;
+    <a href="https://github.com/wreckage0907/frappe_faker/issues">Support</a>
   </samp>
 </p>

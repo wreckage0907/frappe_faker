@@ -113,8 +113,8 @@
 
 **📝 Prerequisites**
 
-1. A **Frappe Bench** with a site on **v16+**
-2. **Python 3.14**
+1. A **Frappe Bench** with a site on **v16**
+2. **Python 3.14** (Frappe v16 itself requires it)
 3. An API key for **OpenAI**, **Anthropic** or **Gemini** — or a local **Ollama**
 
 <br>
@@ -135,6 +135,8 @@
 1. Fetch the app into your bench:
 
        bench get-app https://github.com/wreckage0907/frappe_faker --branch develop
+
+   This also builds the `/faker` frontend; after pulling updates, run `bench build --app frappe_faker`.
 
 2. Install it on a site:
 
@@ -355,10 +357,27 @@ is a site with the app installed and a provider configured.
 
 <br>
 
+# 🗺️ Roadmap
+
+<samp>
+
+- **Faker Profiles** — saved, shareable generation presets (several DocTypes, counts and
+  instructions run as one). Not in v1.0; the design is in [`docs/PLAN.md`](docs/PLAN.md#future-work-not-in-v10).
+  Until then, script repeated setups with `bench faker generate`.
+
+</samp>
+
+<br>
+
 <hr>
 
 <p align="center">
   <samp>
     MIT &middot; built with <a href="https://frappeframework.com">Frappe</a> and <a href="https://ui.frappe.io">Frappe UI</a>
+    <br>
+    <a href="https://wreckage0907.github.io/frappe_faker/">Website</a> &middot;
+    <a href="https://wreckage0907.github.io/frappe_faker/privacy.html">Privacy</a> &middot;
+    <a href="https://wreckage0907.github.io/frappe_faker/terms.html">Terms</a> &middot;
+    <a href="https://github.com/wreckage0907/frappe_faker/issues">Support</a>
   </samp>
 </p>

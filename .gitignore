@@ -38,6 +38,7 @@ jspm_packages/
 node_modules
 # Frontend build artifacts
 frappe_faker/public/frontend/
+frappe_faker/www/faker.html
 frappe_faker/www/frontend.html
 
 # IDEs and editors

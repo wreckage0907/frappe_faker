@@ -38,13 +38,23 @@ function escapeLike(q) {
 	return q.replace(/[%_\\]/g, "\\$&");
 }
 
+// Only DocTypes that hold standalone rows can be generation targets: child tables are
+// generated inside their parent, Singles have one record, and virtual ones have no table.
+const GENERATABLE_FILTERS = [
+	["istable", "=", 0],
+	["issingle", "=", 0],
+	["is_virtual", "=", 0],
+];
+
 async function fetchDoctypes(query) {
 	loading.value = true;
 	try {
+		const filters = [...GENERATABLE_FILTERS];
+		if (query) filters.push(["name", "like", `%${escapeLike(query)}%`]);
 		const rows = await call("frappe.client.get_list", {
 			doctype: "DocType",
 			fields: ["name"],
-			filters: query ? [["name", "like", `%${escapeLike(query)}%`]] : [],
+			filters,
 			limit: 20,
 			order_by: "name asc",
 		});

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Frappe Faker</title>
+		<meta
+			name="description"
+			content="Generate realistic, correctly-linked test data for any Frappe/ERPNext DocType using an LLM."
+		/>
+		<link rel="icon" href="images/logo.png" />
+		<link rel="stylesheet" href="site.css" />
+	</head>
+	<body>
+		<header>
+			<img src="images/logo.png" alt="" />
+			<a href="./">Frappe Faker</a>
+			<nav>
+				<a href="https://github.com/wreckage0907/frappe_faker#readme">Docs</a>
+				<a href="https://github.com/wreckage0907/frappe_faker/issues">Support</a>
+				<a href="privacy.html">Privacy</a>
+				<a href="terms.html">Terms</a>
+			</nav>
+		</header>
+		<main>
+			<h1>Realistic test data for any Frappe DocType</h1>
+			<p class="lede">
+				Pick a DocType, say how many records you want, and Frappe Faker asks the LLM of your choice for
+				realistic rows that respect its fields, Select options and Link targets, inserts them in
+				dependency order, and lets you roll the whole batch back when you are done.
+			</p>
+			<ul class="links">
+				<li><a href="https://github.com/wreckage0907/frappe_faker#readme">Documentation</a></li>
+				<li><a href="https://github.com/wreckage0907/frappe_faker">Source on GitHub</a></li>
+				<li><a href="https://github.com/wreckage0907/frappe_faker/issues">Get support</a></li>
+			</ul>
+
+			<img class="shot" src="images/generate.png" alt="The Generate screen at /faker" />
+
+			<h2>What it does</h2>
+			<ul>
+				<li>Reads the DocType's schema, including child tables, and builds a dependency graph of its Link fields.</li>
+				<li>Generates records with OpenAI, Anthropic, Gemini, a local Ollama, or any OpenAI-compatible endpoint.</li>
+				<li>Links new records to records that already exist on your site.</li>
+				<li>Records every insert in a batch, so one click (or <code>bench faker cleanup</code>) removes it all.</li>
+				<li>Works from the <code>/faker</code> web UI or from the command line.</li>
+			</ul>
+
+			<h2>Get started</h2>
+			<pre><code>bench get-app https://github.com/wreckage0907/frappe_faker --branch develop
+bench --site mysite install-app frappe_faker</code></pre>
+			<p>
+				Then open <strong>Faker Settings</strong>, choose a provider, and visit <code>/faker</code>.
+				The full guide is in the <a href="https://github.com/wreckage0907/frappe_faker#readme">README</a>.
+			</p>
+			<p>
+				Frappe Faker is for test, demo and development sites. It writes real records into the site you
+				run it on.
+			</p>
+
+			<h2>Your data</h2>
+			<p>
+				Generating records sends the DocType's schema and the names of some existing linked records to the
+				LLM provider you configure. Nothing is sent to us. The <a href="privacy.html">privacy policy</a>
+				lists exactly what is transmitted.
+			</p>
+		</main>
+		<footer>
+			Frappe Faker is open source under the
+			<a href="https://github.com/wreckage0907/frappe_faker/blob/develop/license.txt">MIT License</a>.
+			· <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
+		</footer>
+	</body>
+</html>

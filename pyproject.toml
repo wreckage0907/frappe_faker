@@ -4,7 +4,7 @@ authors = [
     { name = "wreckage0907", email = "girish.raghav2004@gmail.com"}
 ]
 description = "Generate realistic, correctly-linked test data for any Frappe/ERPNext DocType using an LLM"
-requires-python = ">=3.14"
+requires-python = ">=3.14"  # matches Frappe v16's own floor (>=3.14,<3.15); the only Frappe we support
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [

@@ -136,6 +136,8 @@
 
        bench get-app https://github.com/wreckage0907/frappe_faker --branch develop
 
+   This also builds the `/faker` frontend; after pulling updates, run `bench build --app frappe_faker`.
+
 2. Install it on a site:
 
        bench --site mysite install-app frappe_faker

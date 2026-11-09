@@ -6,6 +6,7 @@
   <img alt="Frappe v16+" src="https://img.shields.io/badge/Frappe-v16%2B-2490EF?style=flat-square">
   <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square">
   <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green?style=flat-square">
+  <a href="https://github.com/wreckage0907/frappe_faker/wiki"><img alt="Docs: GitHub Wiki" src="https://img.shields.io/badge/docs-wiki-6E56CF?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -19,6 +20,10 @@
 
 > A Sales Order needs a Customer, which needs a Customer Group. Generic faker libraries
 > fill fields but ignore those links, so their rows fail on insert.
+
+📖 **Full documentation is in the [wiki](https://github.com/wreckage0907/frappe_faker/wiki)**: [Installation](https://github.com/wreckage0907/frappe_faker/wiki/Installation) ·
+[Configuration](https://github.com/wreckage0907/frappe_faker/wiki/Configuration) · [Using the App](https://github.com/wreckage0907/frappe_faker/wiki/Using-the-App) ·
+[CLI](https://github.com/wreckage0907/frappe_faker/wiki/CLI-Reference) · [API](https://github.com/wreckage0907/frappe_faker/wiki/API-Reference) · [Troubleshooting](https://github.com/wreckage0907/frappe_faker/wiki/Troubleshooting)
 
 </samp>
 
@@ -376,6 +381,7 @@ is a site with the app installed and a provider configured.
     MIT &middot; built with <a href="https://frappeframework.com">Frappe</a> and <a href="https://ui.frappe.io">Frappe UI</a>
     <br>
     <a href="https://wreckage0907.github.io/frappe_faker/">Website</a> &middot;
+    <a href="https://github.com/wreckage0907/frappe_faker/wiki">Docs</a> &middot;
     <a href="https://wreckage0907.github.io/frappe_faker/privacy.html">Privacy</a> &middot;
     <a href="https://wreckage0907.github.io/frappe_faker/terms.html">Terms</a> &middot;
     <a href="https://github.com/wreckage0907/frappe_faker/issues">Support</a>
